@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="dark light">
+    <title id="page-title">RCP Reparación de Celulares Profesional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <style>
+        .bg-navy-dark { background-color: #0b132b; }
+        .bg-navy-light { background-color: #1c2541; }
+        .text-orange-brand { color: #ff6b35; }
+        .bg-orange-brand { background-color: #ff6b35; }
+        
+        @keyframes scan {
+            0% { top: 0%; opacity: 1; }
+            50% { top: 100%; opacity: 1; }
+            100% { top: 0%; opacity: 1; }
+        }
+        .scanner-line { animation: scan 1.5s linear infinite; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* TICKET TÉRMICO DE 80mm CON MÁRGENES DE 4mm */
+        #print-receipt-ticket {
+            display: none;
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-family: 'Courier New', Courier, monospace !important;
+            font-size: 11px !important;
+            width: 100% !important;
+            max-width: 80mm !important;
+            margin: 0 auto !important;
+            padding: 4mm 4mm !important;
+            box-sizing: border-box !important;
+            line-height: 1.25 !important;
+        }
+        #print-receipt-ticket * {
+            color: #000000 !important;
+            visibility: visible !important;
+            font-family: 'Courier New', Courier, monospace !important;
+        }
+
+        @media print {
+            :root { color-scheme: light only; }
+            @page { size: 80mm auto; margin: 0mm; }
+            html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            header, main, #toast, #toast-error, canvas, .no-print { display: none !important; }
+            #print-receipt-ticket { display: block !important; position: static !important; }
+        }
+
+        #bt-debug-log {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10px;
+            max-height: 160px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body class="bg-navy-dark text-gray-100 min-h-screen font-sans flex flex-col justify-between select-none relative">
+
+    <div id="pin-gate-screen" class="fixed inset-0 z-[9999] bg-navy-dark flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <div class="bg-orange-brand p-3 rounded-2xl text-white shadow-lg shadow-orange-500/30 mb-1">
+            <i class="fa-solid fa-lock text-2xl"></i>
+        </div>
+        <h2 class="text-white font-extrabold text-lg">Acceso al Taller</h2>
+        <p class="text-gray-400 text-xs max-w-xs">Ingresa el PIN del taller para continuar</p>
+        <input type="password" id="pin-gate-input" inputmode="numeric" maxlength="8" placeholder="••••" class="w-40 text-center bg-navy-light border border-gray-700 rounded-xl px-3 py-3 text-xl tracking-widest text-white focus:outline-none focus:border-orange-brand font-mono">
+        <p id="pin-gate-error" class="text-rose-400 text-xs hidden">PIN incorrecto, intenta de nuevo</p>
+        <button type="button" id="pin-gate-submit" class="bg-orange-brand hover:bg-orange-600 text-white font-bold py-2.5 px-8 rounded-xl text-xs uppercase tracking-wider shadow-lg mt-1">Entrar</button>
+    </div>
+
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden transition-opacity"></div>
+
+
+    <div id="edit-order-panel" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-md max-h-[85vh] overflow-y-auto bg-navy-light border border-gray-700 rounded-2xl shadow-2xl p-5 flex flex-col gap-3 z-[210]">
+        <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+            <span class="text-xs font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-pen text-orange-brand"></i> Editar Orden <span id="edit-order-id" class="text-orange-brand font-mono"></span>
+            </span>
+            <button type="button" class="text-gray-400 hover:text-white p-1 text-sm font-bold" onclick="closeAllModals()">&times;</button>
+        </div>
+        <p class="text-[10px] text-gray-400 -mt-1">Las fotos, patrón y firma originales no se pueden modificar aquí (quedan como evidencia).</p>
+        <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Cliente</label>
+                <input type="text" id="edit-client-name" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Teléfono</label>
+                <input type="tel" id="edit-client-phone" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Marca / Modelo</label>
+                <input type="text" id="edit-device-model" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Color</label>
+                <input type="text" id="edit-device-color" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+            </div>
+        </div>
+        <div class="flex flex-col gap-1">
+            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">IMEI / No. Serie</label>
+            <input type="text" id="edit-device-imei" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+        </div>
+        <div class="flex flex-col gap-1">
+            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Falla Declarada</label>
+            <textarea id="edit-repair-falla" rows="2" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand resize-none"></textarea>
+        </div>
+        <div class="flex flex-col gap-1">
+            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Diagnóstico / Nota Técnica</label>
+            <textarea id="edit-repair-note" rows="2" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand resize-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Presupuesto ($)</label>
+                <input type="number" id="edit-repair-budget" step="0.01" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-emerald-400 font-bold font-mono focus:outline-none focus:border-orange-brand">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Anticipo ($)</label>
+                <input type="number" id="edit-repair-advance" step="0.01" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-amber-400 font-bold font-mono focus:outline-none focus:border-orange-brand">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">PIN / Contraseña</label>
+                <input type="text" id="edit-device-password" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Fecha de Entrega</label>
+                <input type="date" id="edit-delivery-date" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+            </div>
+        </div>
+        <div class="flex gap-2 mt-1">
+            <button type="button" id="btn-save-edit-order" class="flex-1 bg-orange-brand hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg">Guardar Cambios</button>
+            <button type="button" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2.5 px-4 rounded-xl text-xs" onclick="closeAllModals()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Cabecera de la Aplicación -->
+    <header class="bg-navy-light border-b border-gray-800 px-4 md:px-6 py-4 flex flex-col gap-4 shadow-xl">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 w-full">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div id="header-logo-container" class="bg-orange-brand p-2.5 rounded-xl text-white shadow-lg shadow-orange-500/30 flex items-center justify-center overflow-hidden w-11 h-11 shrink-0">
+                    <i id="header-default-icon" class="fa-solid fa-screwdriver-wrench text-xl animate-pulse"></i>
+                    <img id="header-custom-logo" class="w-full h-full object-contain hidden" alt="Logo Taller">
+                </div>
+                <div>
+                    <h1 id="header-workshop-name" class="text-lg md:text-xl font-extrabold tracking-wide text-white">RCP <span class="text-orange-brand">Reparación de Celulares</span></h1>
+                    <p class="text-[11px] text-gray-400 font-medium">Recepción Legal y Análisis de Daños por Visión AI</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2.5 w-full md:w-auto justify-end flex-wrap">
+                <div class="bg-navy-dark border border-gray-800 px-3 py-1.5 rounded-lg text-xs flex items-center gap-2">
+                    <span class="text-gray-400">Folio:</span>
+                    <span id="next-folio-display" class="font-bold text-orange-brand font-mono">Cargando...</span>
+                </div>
+
+                <div id="db-status-badge" class="flex items-center gap-2 bg-emerald-950/40 text-emerald-400 px-3 py-1.5 rounded-lg border border-emerald-800/30 text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="connection-status" class="font-bold">Modo Seguro</span>
+                </div>
+
+                <div>
+                    <button id="btn-printer-config" type="button" title="Configurar Impresora Bluetooth" class="flex items-center gap-2 bg-navy-dark border border-gray-800 hover:border-orange-brand px-3 py-1.5 rounded-lg text-xs text-gray-300 transition-all">
+                        <i class="fa-solid fa-print text-orange-brand"></i>
+                        <span id="printer-status-text">Impresora</span>
+                    </button>
+                    <div id="printer-config-panel" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-navy-light border border-gray-700 rounded-2xl shadow-2xl p-5 flex flex-col gap-4 z-[210]">
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                            <span class="text-xs font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-bluetooth-b text-orange-brand"></i> Impresora Térmica (BT)
+                            </span>
+                            <button type="button" class="text-gray-400 hover:text-white p-1 text-sm font-bold" onclick="closeAllModals()">&times;</button>
+                        </div>
+                        <span class="text-[9px] font-mono text-emerald-500 -mt-2">Motor de impresión: v2 (ticket como imagen)</span>
+                        <p class="text-[11px] text-gray-300 leading-relaxed">Conecta tu impresora térmica (AOMU 80mm) vía Web Bluetooth en Bluefy.</p>
+                        <div class="flex flex-col gap-1 bg-navy-dark/60 p-2.5 rounded-xl border border-gray-800">
+                            <span id="printer-device-name" class="text-[11px] font-mono text-emerald-400 font-bold leading-tight">Estado: Desconectada</span>
+                        </div>
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" id="btn-pair-printer" class="flex-1 bg-orange-brand hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg">Vincular Impresora</button>
+                            <button type="button" id="btn-test-print" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2.5 px-4 rounded-xl text-xs">Prueba</button>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[9px] uppercase tracking-wider text-gray-500 font-bold">Log de depuración BT:</span>
+                            <div id="bt-debug-log" class="bg-black/60 border border-gray-800 rounded-lg p-2 text-gray-400"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button id="btn-workshop-config" type="button" title="Configurar Datos del Taller" class="flex items-center gap-2 bg-navy-dark border border-gray-800 hover:border-orange-brand px-3 py-1.5 rounded-lg text-xs text-gray-300 transition-all">
+                        <i class="fa-solid fa-shop text-orange-brand"></i>
+                        <span>Taller</span>
+                    </button>
+                    <div id="workshop-config-panel" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-navy-light border border-gray-700 rounded-2xl shadow-2xl p-5 flex flex-col gap-4 z-[210]">
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                            <span class="text-xs font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-gear text-orange-brand"></i> Configurar Datos del Taller
+                            </span>
+                            <button type="button" class="text-gray-400 hover:text-white p-1 text-sm font-bold" onclick="closeAllModals()">&times;</button>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Nombre del Taller</label>
+                            <input type="text" id="workshop-name-input" class="w-full bg-navy-dark border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Dirección y Ubicación</label>
+                            <input type="text" id="workshop-address-input" class="w-full bg-navy-dark border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Referencia</label>
+                            <input type="text" id="workshop-ref-input" class="w-full bg-navy-dark border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Teléfono / WhatsApp</label>
+                            <input type="text" id="workshop-phone-input" class="w-full bg-navy-dark border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Redes Sociales (TikTok, IG, FB)</label>
+                            <input type="text" id="workshop-social-input" class="w-full bg-navy-dark border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Logo del Taller (Imagen)</label>
+                            <input type="file" id="workshop-logo-input" accept="image/*" class="w-full bg-navy-dark border border-gray-800 rounded-xl px-2 py-2 text-[10px] text-gray-300 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-orange-brand file:text-white cursor-pointer">
+                        </div>
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" id="btn-save-workshop" class="flex-1 bg-orange-brand hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg">Guardar</button>
+                            <button type="button" id="btn-clear-workshop" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2.5 px-3 rounded-xl text-xs">Restablecer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <button id="btn-api-key" type="button" title="Configurar API Key de Gemini" class="flex items-center gap-2 bg-navy-dark border border-gray-800 hover:border-orange-brand px-3 py-1.5 rounded-lg text-xs text-gray-300 transition-all">
+                        <i class="fa-solid fa-key text-orange-brand"></i>
+                        <span id="api-key-status">API Configurada</span>
+                    </button>
+                    <div id="api-key-panel" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-navy-light border border-gray-700 rounded-2xl shadow-2xl p-5 flex flex-col gap-4 z-[210]">
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                            <span class="text-xs font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-robot text-orange-brand"></i> API Gemini AI
+                            </span>
+                            <button type="button" class="text-gray-400 hover:text-white p-1 text-sm font-bold" onclick="closeAllModals()">&times;</button>
+                        </div>
+                        <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Tu API Key de Google</label>
+                        <input type="password" id="api-key-input" placeholder="Pega aquí tu clave..." class="w-full bg-navy-dark border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" id="btn-save-api-key" class="flex-1 bg-orange-brand hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-xs shadow-lg">Guardar</button>
+                            <button type="button" id="btn-clear-api-key" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2.5 px-3 rounded-xl text-xs">Restablecer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex bg-navy-dark p-1.5 rounded-xl border border-gray-800 text-xs lg:hidden w-full gap-1">
+            <button id="tab-registro" type="button" class="flex-1 py-2.5 px-3 rounded-lg font-bold text-white bg-orange-brand transition-all text-center shadow-md flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-file-circle-plus"></i> Nueva Orden
+            </button>
+            <button id="tab-ordenes" type="button" class="flex-1 py-2.5 px-3 rounded-lg font-bold text-gray-300 transition-all text-center flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-list-check"></i> Órdenes (<span id="orders-count">0</span>)
+            </button>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl w-full mx-auto p-4 md:p-6 grid lg:grid-cols-12 gap-6 flex-grow items-start relative">
+        
+        <!-- COLUMNA IZQUIERDA: CAPTURA & INGRESO -->
+        <section id="section-registro" class="lg:col-span-7 flex flex-col gap-6 w-full">
+            <div class="bg-navy-light border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-md font-bold text-gray-200 flex items-center gap-2">
+                        <i class="fa-solid fa-camera text-orange-brand"></i> Paso 1: Fotografías del Dispositivo
+                    </h2>
+                    <span class="text-[10px] bg-orange-brand/10 text-orange-brand px-2 py-1 rounded-md font-extrabold uppercase tracking-widest">IA Escáner</span>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <label class="relative border border-dashed border-gray-700 hover:border-orange-brand rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer bg-navy-dark/40 overflow-hidden group transition-all">
+                        <input type="file" accept="image/*" class="hidden file-slot-input" data-slot="0">
+                        <div id="slot-placeholder-0" class="text-center p-2 pointer-events-none">
+                            <i class="fa-solid fa-mobile text-lg text-gray-500 mb-1 group-hover:text-orange-brand"></i>
+                            <p class="text-[9px] font-bold text-gray-400">Frente / Pantalla</p>
+                        </div>
+                        <img id="slot-preview-0" class="w-full h-full object-contain hidden p-1 rounded-xl" alt="Frente">
+                    </label>
+
+                    <label class="relative border border-dashed border-gray-700 hover:border-orange-brand rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer bg-navy-dark/40 overflow-hidden group transition-all">
+                        <input type="file" accept="image/*" class="hidden file-slot-input" data-slot="1">
+                        <div id="slot-placeholder-1" class="text-center p-2 pointer-events-none">
+                            <i class="fa-solid fa-camera text-lg text-gray-500 mb-1 group-hover:text-orange-brand"></i>
+                            <p class="text-[9px] font-bold text-gray-400">Atrás / Tapa</p>
+                        </div>
+                        <img id="slot-preview-1" class="w-full h-full object-contain hidden p-1 rounded-xl" alt="Atrás">
+                    </label>
+
+                    <label class="relative border border-dashed border-gray-700 hover:border-orange-brand rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer bg-navy-dark/40 overflow-hidden group transition-all">
+                        <input type="file" accept="image/*" class="hidden file-slot-input" data-slot="2">
+                        <div id="slot-placeholder-2" class="text-center p-2 pointer-events-none">
+                            <i class="fa-solid fa-mobile-screen text-lg text-gray-500 mb-1 group-hover:text-orange-brand"></i>
+                            <p class="text-[9px] font-bold text-gray-400">Borde Izquierdo</p>
+                        </div>
+                        <img id="slot-preview-2" class="w-full h-full object-contain hidden p-1 rounded-xl" alt="Borde Izquierdo">
+                    </label>
+
+                    <label class="relative border border-dashed border-gray-700 hover:border-orange-brand rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer bg-navy-dark/40 overflow-hidden group transition-all">
+                        <input type="file" accept="image/*" class="hidden file-slot-input" data-slot="3">
+                        <div id="slot-placeholder-3" class="text-center p-2 pointer-events-none">
+                            <i class="fa-solid fa-bolt text-lg text-gray-500 mb-1 group-hover:text-orange-brand"></i>
+                            <p class="text-[9px] font-bold text-gray-400">Borde Derecho</p>
+                        </div>
+                        <img id="slot-preview-3" class="w-full h-full object-contain hidden p-1 rounded-xl" alt="Borde Derecho">
+                    </label>
+                </div>
+
+                <div id="scanner-visual" class="relative w-full h-2 rounded-lg bg-gray-800 overflow-hidden hidden">
+                    <div class="scanner-line absolute top-0 bottom-0 w-24 bg-gradient-to-r from-transparent via-orange-brand to-transparent"></div>
+                </div>
+
+                <button type="button" id="btn-run-ia" disabled class="w-full bg-gray-800 text-gray-500 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-not-allowed text-xs uppercase tracking-wider">
+                    <i id="ia-spinner" class="fa-solid fa-circle-notch animate-spin hidden"></i>
+                    <span id="ia-btn-text">Subir imágenes para escanear con IA</span>
+                </button>
+            </div>
+
+            <!-- Formulario Técnico de Admisión -->
+            <div class="bg-navy-light border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <h2 class="text-md font-bold text-gray-200 flex items-center gap-2 border-b border-gray-800/80 pb-3">
+                    <i class="fa-solid fa-id-card text-orange-brand"></i> Paso 2: Datos del Cliente y Diagnóstico
+                </h2>
+                
+                <form id="form-ingreso" onsubmit="event.preventDefault();" class="flex flex-col gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Nombre del Cliente *</label>
+                            <input type="text" id="client-name" required placeholder="Ej. Juan Pérez" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Teléfono Celular *</label>
+                            <input type="tel" id="client-phone" required placeholder="Ej. 6681234567" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-navy-dark/40 p-3.5 rounded-xl border border-gray-800/60">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-orange-brand">Marca / Modelo *</label>
+                            <input type="text" id="device-model" required placeholder="Ej. iPhone 15 Pro Max" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-orange-brand">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-orange-brand">Color Detectado</label>
+                            <input type="text" id="device-color" placeholder="Ej. Azul Titanio" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">IMEI o No. Serie *</label>
+                            <input type="text" id="device-imei" required placeholder="No. de Serie / IMEI" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+                        </div>
+                    </div>
+
+                    <div id="ai-damage-block" class="hidden flex flex-col gap-2 bg-orange-950/20 border border-orange-900/40 p-4 rounded-xl">
+                        <span class="text-[10px] uppercase font-extrabold tracking-wider text-orange-brand flex items-center gap-1">
+                            <i class="fa-solid fa-brain animate-pulse"></i> Área de Análisis IA:
+                        </span>
+                        <div id="ai-damage-badges" class="flex flex-wrap gap-1.5 mt-1"></div>
+                        <p id="ai-damage-summary" class="text-xs text-gray-300 italic mt-1 leading-relaxed border-t border-orange-900/30 pt-2"></p>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] uppercase font-bold tracking-wider text-orange-brand font-black">Falla Declarada por el Cliente *</label>
+                        <textarea id="repair-falla" required rows="2" placeholder="Ej. Pantalla rota que no da imagen..." class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand resize-none font-medium"></textarea>
+                    </div>
+
+                    <!-- CAMPO DE NOTA TÉCNICA -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Diagnóstico / Nota Técnica (Opcional)</label>
+                        <textarea id="repair-note" rows="2" placeholder="Ej. Requiere limpieza en centro de carga..." class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand resize-none font-medium"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">PIN / Contraseña / Patrón</label>
+                            <input type="text" id="device-password" placeholder="PIN, Patrón o 'Sin Contraseña'" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-mono">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Fecha Estimada de Entrega</label>
+                            <input type="date" id="delivery-date" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+                        </div>
+                    </div>
+
+                    <!-- Apartado de Patrón -->
+                    <div class="flex flex-col gap-2 bg-navy-dark/40 p-3.5 rounded-xl border border-gray-800/80">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-orange-brand flex items-center gap-1.5">
+                                <i class="fa-solid fa-pattern"></i> Dibujar Patrón de Desbloqueo
+                            </label>
+                            <button type="button" id="btn-clear-pattern" class="text-[10px] text-rose-400 hover:underline">Limpiar Patrón</button>
+                        </div>
+                        <div class="flex justify-center items-center py-2">
+                            <div class="relative w-48 h-48 bg-navy-dark border border-gray-700 rounded-xl flex items-center justify-center p-4">
+                                <canvas id="pattern-canvas" class="w-full h-full cursor-crosshair touch-none rounded-lg"></canvas>
+                            </div>
+                        </div>
+                        <span id="pattern-seq-text" class="text-[10px] font-mono text-gray-400 text-center">Secuencia: Ninguna</span>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Estado de Recepción del Equipo</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <label class="flex items-center gap-2 bg-navy-dark/60 p-2.5 rounded-lg border border-gray-800 hover:border-gray-700 cursor-pointer text-xs select-none">
+                                <input type="checkbox" id="check-screen" class="accent-orange-brand rounded">
+                                <span>Pantalla Enciende</span>
+                            </label>
+                            <label class="flex items-center gap-2 bg-navy-dark/60 p-2.5 rounded-lg border border-gray-800 hover:border-gray-700 cursor-pointer text-xs select-none">
+                                <input type="checkbox" id="check-power" class="accent-orange-brand rounded">
+                                <span>Prende Placa</span>
+                            </label>
+                            <label class="flex items-center gap-2 bg-navy-dark/60 p-2.5 rounded-lg border border-gray-800 hover:border-gray-700 cursor-pointer text-xs select-none">
+                                <input type="checkbox" id="check-touch" class="accent-orange-brand rounded">
+                                <span>Touch Responde</span>
+                            </label>
+                            <label class="flex items-center gap-2 bg-navy-dark/60 p-2.5 rounded-lg border border-gray-800 hover:border-gray-700 cursor-pointer text-xs select-none">
+                                <input type="checkbox" id="check-charge" class="accent-orange-brand rounded">
+                                <span>Pin de Carga Sano</span>
+                            </label>
+                            <label class="flex items-center gap-2 bg-navy-dark/60 p-2.5 rounded-lg border border-gray-800 hover:border-gray-700 cursor-pointer text-xs select-none">
+                                <input type="checkbox" id="check-buttons" class="accent-orange-brand rounded">
+                                <span>Botones OK</span>
+                            </label>
+                            <label class="flex items-center gap-2 bg-navy-dark/60 p-2.5 rounded-lg border border-gray-800 hover:border-gray-700 cursor-pointer text-xs select-none">
+                                <input type="checkbox" id="check-cameras" class="accent-orange-brand rounded">
+                                <span>Señal / Antenas OK</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Presupuesto Estimado ($)</label>
+                            <input type="number" id="repair-budget" placeholder="0.00" step="0.01" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-emerald-400 font-bold font-mono focus:outline-none focus:border-orange-brand">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Anticipo / Abono ($)</label>
+                            <input type="number" id="repair-advance" placeholder="0.00" step="0.01" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-amber-400 font-bold font-mono focus:outline-none focus:border-orange-brand">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] uppercase font-bold tracking-wider text-rose-400 font-bold">Condiciones de Ingreso al Taller</label>
+                        <div class="h-16 overflow-y-auto p-2 bg-navy-dark border border-gray-800 rounded-lg text-[9px] text-gray-400 leading-normal scrollbar-thin">
+                            1. La garantía cubre únicamente la reparación realizada. 2. No cubre daños por golpes, humedad, manipulación de terceros o mal uso. 3. El equipo debe presentarse con este ticket para hacer válida la garantía. 4. Equipos abandonados más de 30 días pasarán a remate.
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] uppercase font-bold tracking-wider text-orange-brand">Firma del Cliente de Aceptación *</label>
+                            <button type="button" id="btn-clear-sig" class="text-[10px] text-rose-400 hover:underline">Limpiar Firma</button>
+                        </div>
+                        <div class="relative bg-navy-dark border border-gray-800 rounded-lg overflow-hidden h-28">
+                            <canvas id="signature-canvas" class="w-full h-full cursor-crosshair touch-none"></canvas>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-submit-order" class="w-full bg-orange-brand hover:bg-orange-600 text-white font-extrabold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg text-xs uppercase tracking-wider mt-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Registrar Entrada & Guardar Orden
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- COLUMNA DERECHA: HISTORIAL & TICKET DIGITAL -->
+        <section id="section-ordenes" class="lg:col-span-5 flex flex-col gap-6 w-full hidden lg:flex">
+            <div class="bg-navy-light border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+                <h2 class="text-md font-bold text-gray-200 flex items-center justify-between">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-list-check text-orange-brand"></i> Historial de Órdenes</span>
+                    <span id="orders-badge" class="bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0 Órdenes</span>
+                </h2>
+                
+                <input type="text" id="search-orders" placeholder="Buscar por Folio, Cliente o IMEI..." class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+
+                <div class="flex gap-2">
+                    <button type="button" id="btn-export-backup" title="Descargar un archivo con todas las órdenes" class="flex-1 flex items-center justify-center gap-1.5 bg-navy-dark border border-gray-800 hover:border-orange-brand text-gray-300 text-[11px] font-bold py-2 rounded-lg transition-all">
+                        <i class="fa-solid fa-download text-orange-brand"></i> Exportar Respaldo
+                    </button>
+                    <label title="Restaurar órdenes desde un archivo de respaldo" class="flex-1 flex items-center justify-center gap-1.5 bg-navy-dark border border-gray-800 hover:border-orange-brand text-gray-300 text-[11px] font-bold py-2 rounded-lg transition-all cursor-pointer">
+                        <i class="fa-solid fa-upload text-orange-brand"></i> Importar Respaldo
+                        <input type="file" id="btn-import-backup" accept="application/json" class="hidden">
+                    </label>
+                </div>
+
+                <div id="no-orders-placeholder" class="text-center py-8 text-gray-500 border border-dashed border-gray-800 rounded-xl bg-navy-dark/20">
+                    <i class="fa-solid fa-cloud-arrow-down text-2xl mb-1.5 opacity-30"></i>
+                    <p class="text-xs">No hay reparaciones almacenadas</p>
+                </div>
+
+                <div id="orders-list" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1 no-scrollbar"></div>
+            </div>
+
+            <!-- Ficha / Ticket Digital -->
+            <div id="ticket-container" class="hidden bg-navy-light border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4 border-t-4 border-t-orange-brand relative overflow-hidden">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span id="ticket-id" class="text-xs font-mono font-bold text-orange-brand">RCP-00001</span>
+                        <h3 class="text-sm font-extrabold text-white mt-0.5">Orden de Admisión</h3>
+                    </div>
+                    <div class="flex gap-1.5 flex-wrap justify-end">
+                        <!-- Enlace nativo <a> para forzar la apertura de WhatsApp en iOS -->
+                        <a id="btn-share-ticket" href="#" target="_blank" rel="noopener noreferrer" title="Enviar por WhatsApp" class="text-[11px] bg-green-600 hover:bg-green-500 text-white border border-green-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition-all shadow-md">
+                            <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                        </a>
+                        <button id="btn-copy-ticket" type="button" title="Copiar Formato" class="text-[11px] bg-navy-dark hover:bg-gray-800 text-gray-300 border border-gray-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                        <button id="btn-print-ticket" type="button" title="Guardar Imagen del Ticket" class="text-[11px] bg-navy-dark hover:bg-gray-800 text-gray-300 border border-gray-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-image"></i> Imagen
+                        </button>
+                        <button id="btn-print-bt" type="button" title="Imprimir BT" class="text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition-all shadow-md">
+                            <i class="fa-solid fa-bluetooth"></i> Imprimir BT
+                        </button>
+                        <button id="btn-edit-ticket" type="button" title="Editar Orden" class="text-[11px] bg-navy-dark hover:bg-gray-800 text-gray-300 border border-gray-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </button>
+                        <button id="btn-delete-ticket" type="button" title="Eliminar Orden" class="text-[11px] bg-rose-950 hover:bg-rose-900 text-rose-400 border border-rose-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="ticket-client-history" class="hidden bg-orange-950/20 border border-orange-900/40 rounded-xl p-3 flex flex-col gap-1.5">
+                    <span class="text-[9px] uppercase tracking-wider text-orange-brand font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-clock"></i> Historial de este cliente
+                    </span>
+                    <div id="ticket-client-history-list" class="flex flex-col gap-1"></div>
+                </div>
+
+                <div class="bg-navy-dark/40 border border-gray-800/80 rounded-xl p-4 flex flex-col gap-3 text-xs leading-relaxed">
+                    <!-- GALERÍA DE IMÁGENES -->
+                    <div class="flex flex-col gap-1.5 mb-1">
+                        <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Imágenes de Entrada:</span>
+                        <div class="grid grid-cols-4 gap-2 bg-navy-dark/60 p-2 rounded-xl border border-gray-800/60" id="ticket-gallery-grid"></div>
+                    </div>
+
+                    <div class="flex justify-between border-b border-gray-800 pb-2">
+                        <span class="text-gray-400">Fecha y Hora:</span>
+                        <span id="ticket-date" class="font-bold text-white">-</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[9px] uppercase tracking-wider text-orange-brand font-bold">Cliente</span>
+                        <div class="flex justify-between">
+                            <span id="ticket-client" class="font-bold text-white">-</span>
+                            <span id="ticket-phone" class="font-mono text-gray-400">-</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1 border-t border-gray-800/50 pt-2">
+                        <span class="text-[9px] uppercase tracking-wider text-orange-brand font-bold">Dispositivo</span>
+                        <div class="grid grid-cols-2 gap-1 text-[11px]">
+                            <div><span class="text-gray-400">Equipo:</span> <span id="ticket-device" class="text-white font-bold">-</span></div>
+                            <div><span class="text-gray-400">Color:</span> <span id="ticket-color" class="text-white">-</span></div>
+                            <div><span class="text-gray-400">IMEI:</span> <span id="ticket-imei" class="text-white font-mono">-</span></div>
+                            <div><span class="text-gray-400">PIN:</span> <span id="ticket-password" class="text-white font-mono">-</span></div>
+                        </div>
+                    </div>
+
+                    <div id="ticket-ai-damage-block" class="hidden flex flex-col gap-2 bg-orange-950/20 border border-orange-900/40 p-3 rounded-xl">
+                        <span class="text-[9px] uppercase font-extrabold tracking-wider text-orange-brand flex items-center gap-1">
+                            <i class="fa-solid fa-brain"></i> Análisis IA (al capturar):
+                        </span>
+                        <div id="ticket-ai-damage-badges" class="flex flex-wrap gap-1.5"></div>
+                        <p id="ticket-ai-damage-summary" class="text-xs text-gray-300 italic leading-relaxed border-t border-orange-900/30 pt-2"></p>
+                    </div>
+
+                    <div id="ticket-pattern-row" class="flex flex-col gap-1 border-t border-gray-800/50 pt-2 hidden">
+                        <span class="text-[9px] uppercase tracking-wider text-orange-brand font-bold">Patrón:</span>
+                        <div class="w-full bg-navy-dark rounded-lg flex justify-center items-center h-20 border border-gray-800 p-1">
+                            <img id="ticket-pattern-img" class="max-h-full object-contain" alt="Patrón">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1 border-t border-gray-800/50 pt-2">
+                        <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Falla Declarada:</span>
+                        <p id="ticket-falla" class="text-gray-300 font-medium italic">-</p>
+                    </div>
+
+                    <div class="flex flex-col gap-1 border-t border-gray-800/50 pt-2">
+                        <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Diagnóstico / Observaciones:</span>
+                        <p id="ticket-note" class="text-gray-300 font-medium italic">-</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 border-t border-gray-800 pt-2 mt-1">
+                        <div>
+                            <span class="text-gray-400 text-[10px] block">Presupuesto:</span>
+                            <span id="ticket-budget" class="text-xs font-bold text-emerald-400 font-mono">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400 text-[10px] block">Anticipo:</span>
+                            <span id="ticket-advance" class="text-xs font-bold text-amber-400 font-mono">$0.00</span>
+                        </div>
+                        <div class="col-span-2 flex justify-between border-t border-gray-800/50 pt-1">
+                            <span class="text-gray-400 text-[10px]">Saldo Pendiente:</span>
+                            <span id="ticket-balance" class="text-xs font-bold text-rose-400 font-mono">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1 border-t border-gray-800/50 pt-2">
+                        <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Firma del Cliente:</span>
+                        <div class="w-full bg-navy-dark rounded-lg flex justify-center items-center h-16 border border-gray-800">
+                            <img id="ticket-signature-img" class="max-h-full object-contain" alt="Firma">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- VISOR MODAL DE IMÁGENES -->
+    <div id="image-modal" class="fixed inset-0 z-[500] bg-black/95 hidden flex-col justify-center items-center p-4">
+        <button id="close-image-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white text-4xl w-12 h-12 flex items-center justify-center bg-gray-900/60 rounded-full z-[510]">&times;</button>
+        <img id="modal-image" class="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-gray-800" src="" alt="Vista Previa de Daño">
+    </div>
+
+    <!-- ================= TICKET TÉRMICO DEFINITIVO CON CONDICIONES Y LOGO ARRIBA ================= -->
+    <div id="print-receipt-ticket">
+        <div style="text-align: center; width: 100%;">
+            <!-- LOGO DINÁMICO ARRIBA EN EL TICKET DE IMPRESIÓN -->
+            <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 8px;">
+                <div id="print-logo-box" style="display: none; width: 64px; height: 64px; border: 2px solid #000; border-radius: 12px; padding: 4px; box-sizing: border-box;">
+                    <img id="print-logo-img" style="width: 100%; height: 100%; object-fit: contain; display: block; margin: 0 auto;" alt="Logo">
+                </div>
+            </div>
+            
+            <h3 id="print-workshop-title" style="font-size: 14px; font-weight: bold; margin: 0; text-transform: uppercase; width: 100%; text-align: center;">RCP REPARACIÓN DE CELULARES<br>PROFESIONAL</h3>
+            <p id="print-workshop-address" style="font-size: 10px; margin: 6px 0 2px 0; width: 100%; text-align: center;">Independencia #248, Col. Centro, Los Mochis,<br>Sinaloa.</p>
+            <p id="print-workshop-ref" style="font-size: 10px; margin: 2px 0; width: 100%; text-align: center;">Frente a la tienda Milano.</p>
+            <p id="print-workshop-phone" style="font-size: 10px; margin: 4px 0 2px 0; font-weight: bold; width: 100%; text-align: center;">WhatsApp / Teléfono: 668 124 4214</p>
+        </div>
+        
+        <div style="width: 100%; border-bottom: 2px dashed #000; margin-top: 10px; margin-bottom: 10px;"></div>
+
+        <div id="print-workshop-social" style="font-size: 9px; text-align: center; width: 100%;">
+            TikTok: @ivan_tecnico | IG:<br>@tallerdecelularesenlosmochis<br>
+            <span style="font-weight: bold; font-size: 10px;">Facebook: RCP Reparación de Celulares Profesional</span>
+        </div>
+        
+        <div style="width: 100%; border-bottom: 2px dashed #000; margin-top: 10px; margin-bottom: 10px;"></div>
+
+        <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 10px; text-transform: uppercase; width: 100%;">
+            ORDEN DE RECEPCIÓN Y SERVICIO TÉCNICO
+        </div>
+
+        <div style="border: 2px solid #000; padding: 6px; margin-bottom: 12px; width: 100%; box-sizing: border-box; background: #fff;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px; width: 100%;">
+                <span>FOLIO: <span id="p-id">RCP-00001</span></span>
+                <span>FECHA: <span id="p-fecha">-</span></span>
+            </div>
+            <div style="text-align: center; margin-top: 6px; font-size: 11px; width: 100%; color: #333;">HORA: <span id="p-hora">-</span></div>
+        </div>
+
+        <div style="font-size: 11px; line-height: 1.5; width: 100%;">
+            <div style="font-weight: bold; font-size: 12px; margin-top: 8px; width: 100%; text-align: left; display: flex; align-items: center; gap: 4px;">
+                👤 DATOS DEL CLIENTE
+            </div>
+            <div style="width: 100%; border-bottom: 1.5px solid #000; margin-top: 4px; margin-bottom: 6px;"></div>
+            
+            <div style="width: 100%; margin-bottom: 2px;">Nombre: <span id="p-cliente" style="font-weight: bold;">-</span></div>
+            <div style="width: 100%;">Teléfono: <span id="p-telefono" style="font-weight: bold;">-</span></div>
+
+            <div style="font-weight: bold; font-size: 12px; margin-top: 12px; width: 100%; text-align: left; display: flex; align-items: center; gap: 4px;">
+                📱 DATOS DEL EQUIPO
+            </div>
+            <div style="width: 100%; border-bottom: 1.5px solid #000; margin-top: 4px; margin-bottom: 6px;"></div>
+            
+            <div style="width: 100%; margin-bottom: 2px;">Marca / Modelo: <span id="p-dispositivo" style="font-weight: bold;">-</span></div>
+            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 2px;">
+                <div style="width: 50%;">Color: <span id="p-color">-</span></div>
+                <div style="width: 50%;">IMEI/Nº Serie:<br><span id="p-imei">-</span></div>
+            </div>
+            <div style="width: 100%;">Contraseña/Patrón: <span id="p-password" style="font-weight: bold;">-</span></div>
+
+            <div id="p-pattern-print-box" style="margin-top: 6px; text-align: center; display: none; width: 100%;">
+                <img id="p-pattern-img" style="max-height: 70px; object-fit: contain; display: inline-block; border: 1.5px solid #000; border-radius: 4px; padding: 2px;" alt="Patrón">
+            </div>
+
+            <div style="font-weight: bold; font-size: 12px; margin-top: 12px; width: 100%; text-align: left; display: flex; align-items: center; gap: 4px;">
+                ⚠️ FALLA REPORTADA
+            </div>
+            <div style="width: 100%; border-bottom: 1.5px solid #000; margin-top: 4px; margin-bottom: 6px;"></div>
+            <p id="p-falla" style="margin: 4px 0; font-style: italic; width: 100%; font-family: monospace;">-</p>
+
+            <div style="font-weight: bold; font-size: 12px; margin-top: 12px; width: 100%; text-align: left; display: flex; align-items: center; gap: 4px;">
+                📋 DIAGNÓSTICO / OBSERVACIONES
+            </div>
+            <div style="width: 100%; border-bottom: 1.5px solid #000; margin-top: 4px; margin-bottom: 6px;"></div>
+            <p id="p-nota" style="margin: 4px 0; font-style: italic; width: 100%; min-height: 14px; font-family: monospace;">-</p>
+
+            <div style="border: 2px solid #000; margin-top: 12px; display: flex; justify-content: space-between; width: 100%; box-sizing: border-box; background: #fff;">
+                <div style="width: 50%; padding: 6px;">
+                    <div style="font-weight: bold; font-size: 11px; text-align: center;">PRESUPUESTO</div>
+                    <div style="width: 100%; border-bottom: 1.5px solid #000; margin-top: 4px; margin-bottom: 6px;"></div>
+                    <div style="font-size: 15px; font-weight: bold; text-align: center; margin-top: 6px; margin-bottom: 8px;" id="p-total">$0.00</div>
+                    <div style="font-size: 10px; margin-top: auto;">Entrega: <span id="p-fecha-entrega">-</span></div>
+                </div>
+                <div style="width: 50%; border-left: 2px solid #000; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column;">
+                    <div style="font-weight: bold; font-size: 11px; text-align: center;">DETALLE PAGO</div>
+                    <div style="width: 100%; border-bottom: 1.5px solid #000; margin-top: 4px; margin-bottom: 6px;"></div>
+                    <div style="font-size: 11px; margin-top: 4px;">Anticipo: <span id="p-anticipo" style="font-weight: bold;">$0.00</span></div>
+                    <div style="font-size: 11px; margin-top: 4px;">Pendiente: <span id="p-pendiente" style="font-weight: bold;">$0.00</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 14px; padding-top: 4px; font-size: 9px; line-height: 1.3; width: 100%;">
+            <div style="width: 100%; border-bottom: 2px dashed #000; margin-bottom: 10px;"></div>
+            
+            <!-- CONDICIONES DE INGRESO JUSTO ARRIBA DE LA FIRMA -->
+            <div style="font-weight: bold; text-align: center; font-size: 10px; margin-bottom: 6px; width: 100%;">CONDICIONES Y GARANTÍA</div>
+            <p style="margin: 0 0 10px 0; text-align: justify; width: 100%; font-family: monospace; font-size: 9px;">
+                1. La garantía cubre únicamente la reparación realizada. 2. No cubre daños por golpes, humedad, manipulación de terceros o mal uso. 3. El equipo debe presentarse con este ticket para hacer válida la garantía. 4. Equipos abandonados más de 30 días pasarán a remate.
+            </p>
+            
+            <div style="text-align: center; margin: 10px 0 4px 0; width: 100%;">
+                <span style="font-weight: bold; font-size: 11px; display: block; width: 100%; margin-bottom: 6px;">Firma Aceptación del Cliente:</span>
+                <div style="width: 100%; height: 60px; border: 2px solid #000; display: flex; justify-content: center; align-items: center; background: #fff;">
+                    <img id="p-signature-img" style="max-height: 100%; max-width: 100%; object-fit: contain;" alt="Firma">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="compressor-canvas" class="hidden"></canvas>
+
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-bold transition-all duration-300 -translate-y-24 opacity-0 z-[300] flex items-center gap-2">
+        <i class="fa-solid fa-circle-check"></i> <span id="toast-text">Éxito</span>
+    </div>
+    <div id="toast-error" class="fixed top-6 left-1/2 -translate-x-1/2 bg-rose-600 text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-bold transition-all duration-300 -translate-y-24 opacity-0 z-[300] flex items-start gap-2">
+        <i class="fa-solid fa-circle-exclamation"></i> <span id="toast-error-text">Fallo</span>
+    </div>
+
+    <!-- Script principal de la aplicación -->
+    <script type="module">
+        // ==============================================================================
+        // FIREBASE: conexión híbrida (local primero + nube en segundo plano)
+        // ==============================================================================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import {
+            getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import {
+            getAuth, signInAnonymously, onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-Qxp_YmjO-difkqP51oXH3HfzM3VLG3A",
+            authDomain: "rcp-taller-pro-e7c64.firebaseapp.com",
+            projectId: "rcp-taller-pro-e7c64",
+            storageBucket: "rcp-taller-pro-e7c64.firebasestorage.app",
+            messagingSenderId: "430226289097",
+            appId: "1:430226289097:web:c22190165f50ebd772b818"
+        };
+
+        const firebaseApp = initializeApp(firebaseConfig);
+        const dbFirestore = getFirestore(firebaseApp);
+        const authFirebase = getAuth(firebaseApp);
+
+        let firebaseListo = false;
+
+        function esperarAuthFirebase() {
+            return new Promise((resolve) => {
+                let resuelto = false;
+                onAuthStateChanged(authFirebase, (user) => {
+                    if (user && !resuelto) {
+                        resuelto = true;
+                        firebaseListo = true;
+                        resolve(user);
+                    }
+                });
+                signInAnonymously(authFirebase).catch((e) => {
+                    console.error('Error de autenticación con Firebase (la app sigue funcionando en modo local):', e);
+                    if (!resuelto) { resuelto = true; resolve(null); }
+                });
+            });
+        }
+
+        // ==============================================================================
+        // PANTALLA DE PIN DEL TALLER
+        // ==============================================================================
+        const TALLER_PIN = "1980";
+        const PIN_REMEMBER_KEY = "rcp_pin_ok_device";
+
+        function ocultarPinGate() {
+            const gate = document.getElementById('pin-gate-screen');
+            if (gate) gate.remove();
+        }
+
+        function validarPinTaller() {
+            const input = document.getElementById('pin-gate-input');
+            const err = document.getElementById('pin-gate-error');
+            const valor = input ? input.value.trim() : "";
+            if (valor === TALLER_PIN) {
+                try { localStorage.setItem(PIN_REMEMBER_KEY, "1"); } catch (e) {}
+                ocultarPinGate();
+                return;
+            }
+            if (err) err.classList.remove('hidden');
+            if (input) { input.value = ""; input.focus(); }
+        }
+
+        (function inicializarPinGate() {
+            let yaValidado = false;
+            try { yaValidado = localStorage.getItem(PIN_REMEMBER_KEY) === "1"; } catch (e) {}
+            if (yaValidado) {
+                ocultarPinGate();
+                return;
+            }
+            const submitBtn = document.getElementById('pin-gate-submit');
+            const input = document.getElementById('pin-gate-input');
+            if (submitBtn) submitBtn.addEventListener('click', validarPinTaller);
+            if (input) {
+                input.addEventListener('keydown', (e) => { if (e.key === 'Enter') validarPinTaller(); });
+                setTimeout(() => input.focus(), 300);
+            }
+        })();
+
+        let apiKey = "";
+
+        // ---------------------------------------------------------------------
+        // BASE DE DATOS LOCAL SEGURA (IndexedDB + Fallback) PARA PREVENIR CRASH
+        // ---------------------------------------------------------------------
+        const dbHelper = {
+            db: null,
+            useLocalStorage: false,
+            async init() {
+                return new Promise((resolve) => {
+                    if (!window.indexedDB) {
+                        this.useLocalStorage = true;
+                        resolve();
+                        return;
+                    }
+                    try {
+                        const req = indexedDB.open('RCP_TallerDB_v8', 1);
+                        req.onupgradeneeded = e => {
+                            let db = e.target.result;
+                            if (!db.objectStoreNames.contains('ordenes')) {
+                                db.createObjectStore('ordenes', { keyPath: 'id' });
+                            }
+                        };
+                        req.onsuccess = e => { 
+                            this.db = e.target.result; 
+                            resolve(); 
+                        };
+                        req.onerror = e => { 
+                            this.useLocalStorage = true; 
+                            resolve(); 
+                        };
+                    } catch (e) {
+                        this.useLocalStorage = true;
+                        resolve();
+                    }
+                });
+            },
+            async save(orden) {
+                if (this.useLocalStorage || !this.db) {
+                    let localOrders = JSON.parse(localStorage.getItem('rcp_ordenes_data')) || [];
+                    const idx = localOrders.findIndex(o => o.id === orden.id);
+                    if (idx >= 0) {
+                        localOrders[idx] = orden;
+                    } else {
+                        localOrders.unshift(orden);
+                        if (localOrders.length > 50) localOrders = localOrders.slice(0, 50);
+                    }
+                    localStorage.setItem('rcp_ordenes_data', JSON.stringify(localOrders));
+                    return;
+                }
+                return new Promise((resolve, reject) => {
+                    try {
+                        const tx = this.db.transaction('ordenes', 'readwrite');
+                        tx.objectStore('ordenes').put(orden);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject();
+                    } catch(e) {
+                        let localOrders = JSON.parse(localStorage.getItem('rcp_ordenes_data')) || [];
+                        const idx = localOrders.findIndex(o => o.id === orden.id);
+                        if (idx >= 0) { localOrders[idx] = orden; } else { localOrders.unshift(orden); }
+                        localStorage.setItem('rcp_ordenes_data', JSON.stringify(localOrders));
+                        resolve();
+                    }
+                });
+            },
+            async delete(id) {
+                let localOrders = JSON.parse(localStorage.getItem('rcp_ordenes_data')) || [];
+                localOrders = localOrders.filter(o => o.id !== id);
+                localStorage.setItem('rcp_ordenes_data', JSON.stringify(localOrders));
+                if (!this.useLocalStorage && this.db) {
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const tx = this.db.transaction('ordenes', 'readwrite');
+                            tx.objectStore('ordenes').delete(id);
+                            tx.oncomplete = () => resolve();
+                            tx.onerror = () => reject();
+                        });
+                    } catch(e) {}
+                }
+            },
+            async getAll() {
+                let localOrders = JSON.parse(localStorage.getItem('rcp_ordenes_data')) || [];
+                if (this.useLocalStorage || !this.db) {
+                    return localOrders;
+                }
+                return new Promise((resolve) => {
+                    try {
+                        const tx = this.db.transaction('ordenes', 'readonly');
+                        const req = tx.objectStore('ordenes').getAll();
+                        req.onsuccess = () => {
+                            let dbOrders = req.result || [];
+                            let all = [...dbOrders, ...localOrders];
+                            const unique = Array.from(new Set(all.map(a => a.id))).map(id => all.find(a => a.id === id));
+                            resolve(unique.sort((a,b) => b.createdAt - a.createdAt));
+                        };
+                        req.onerror = () => resolve(localOrders);
+                    } catch(e) {
+                        resolve(localOrders);
+                    }
+                });
+            }
+        };
+
+        // ==============================================================================
+        // SINCRONIZACIÓN DE ÓRDENES CON FIREBASE (modo híbrido: local primero + nube)
+        // ==============================================================================
+        async function sincronizarOrdenAFirestore(orden) {
+            if (!firebaseListo) return;
+            try {
+                await setDoc(doc(dbFirestore, 'ordenes', orden.id), orden);
+            } catch (e) {
+                console.error('No se pudo sincronizar la orden con Firebase (se guardó localmente):', e);
+            }
+        }
+
+        async function eliminarOrdenDeFirestore(id) {
+            if (!firebaseListo) return;
+            try {
+                await deleteDoc(doc(dbFirestore, 'ordenes', id));
+            } catch (e) {
+                console.error('No se pudo eliminar la orden en Firebase:', e);
+            }
+        }
+
+        function iniciarEscuchaOrdenesFirestore() {
+            if (!firebaseListo) return;
+            try {
+                onSnapshot(collection(dbFirestore, 'ordenes'), async (snapshot) => {
+                    let huboCambios = false;
+                    for (const change of snapshot.docChanges()) {
+                        const orden = change.doc.data();
+                        if (!orden || !orden.id) continue;
+                        if (change.type === 'removed') {
+                            if (ordenesReparacion.some(o => o.id === orden.id)) {
+                                ordenesReparacion = ordenesReparacion.filter(o => o.id !== orden.id);
+                                await dbHelper.delete(orden.id);
+                                huboCambios = true;
+                            }
+                        } else {
+                            await dbHelper.save(orden);
+                            const idx = ordenesReparacion.findIndex(o => o.id === orden.id);
+                            if (idx >= 0) { ordenesReparacion[idx] = orden; } else { ordenesReparacion.unshift(orden); }
+                            huboCambios = true;
+                        }
+                    }
+                    if (huboCambios) {
+                        ordenesReparacion.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                        actualizarFolioUI();
+                        const buscador = document.getElementById('search-orders');
+                        actualizarHistorial(buscador ? buscador.value : "");
+                        if (ordenSeleccionada) {
+                            const actualizada = ordenesReparacion.find(o => o.id === ordenSeleccionada.id);
+                            if (actualizada) seleccionarOrden(actualizada.id);
+                            else document.getElementById('ticket-container').classList.add('hidden');
+                        }
+                    }
+                }, (error) => {
+                    console.error('Error escuchando cambios de órdenes en Firebase:', error);
+                });
+            } catch (e) {
+                console.error('No se pudo iniciar la escucha en tiempo real de órdenes:', e);
+            }
+        }
+
+        const WORKSHOP_STORAGE_KEY = 'rcp_workshop_config_final';
+
+        let workshopConfig = {
+            name: "RCP REPARACIÓN DE CELULARES PROFESIONAL",
+            address: "Independencia #248, Col. Centro, Los Mochis, Sinaloa.",
+            ref: "Frente a la tienda Milano.",
+            phone: "WhatsApp / Teléfono: 668 124 4214",
+            social: "TikTok: @ivan_tecnico | IG: @tallerdecelularesenlosmochis\nFacebook: RCP Reparación de Celulares Profesional",
+            logo: ""
+        };
+
+        function aplicarConfiguracionTaller() {
+            document.getElementById('workshop-name-input').value = workshopConfig.name;
+            document.getElementById('workshop-address-input').value = workshopConfig.address;
+            document.getElementById('workshop-ref-input').value = workshopConfig.ref;
+            document.getElementById('workshop-phone-input').value = workshopConfig.phone;
+            document.getElementById('workshop-social-input').value = workshopConfig.social;
+
+            const headerNameEl = document.getElementById('header-workshop-name');
+            if (headerNameEl) headerNameEl.textContent = workshopConfig.name || "RCP Reparación de Celulares";
+
+            // En este ticket profesional el titulo tiene breaks, lo dejamos que el usuario lo cambie pero evitamos problemas inyectando HTML.
+            document.getElementById('print-workshop-title').innerHTML = workshopConfig.name.replace(/ /g, '<br>');
+            document.getElementById('print-workshop-title').innerText = workshopConfig.name;
+            document.getElementById('print-workshop-address').innerText = workshopConfig.address;
+            document.getElementById('print-workshop-ref').innerText = workshopConfig.ref;
+            document.getElementById('print-workshop-phone').innerText = workshopConfig.phone;
+            document.getElementById('print-workshop-social').innerText = workshopConfig.social;
+
+            const printLogoBox = document.getElementById('print-logo-box');
+            const printLogoImg = document.getElementById('print-logo-img');
+            const headerCustomLogo = document.getElementById('header-custom-logo');
+            const headerDefaultIcon = document.getElementById('header-default-icon');
+
+            if (workshopConfig.logo) {
+                if (headerCustomLogo && headerDefaultIcon) {
+                    headerCustomLogo.src = workshopConfig.logo;
+                    headerCustomLogo.classList.remove('hidden');
+                    headerDefaultIcon.classList.add('hidden');
+                }
+                if (printLogoBox && printLogoImg) {
+                    printLogoImg.src = workshopConfig.logo;
+                    printLogoBox.style.display = 'block';
+                }
+            } else {
+                if (headerCustomLogo && headerDefaultIcon) {
+                    headerCustomLogo.classList.add('hidden');
+                    headerDefaultIcon.classList.remove('hidden');
+                }
+                if (printLogoBox) printLogoBox.style.display = 'none';
+            }
+        }
+        aplicarConfiguracionTaller();
+
+        async function cargarConfiguracionTallerGuardada() {
+            // Carga rápida desde localStorage (funciona sin internet); Firebase la actualizará
+            // en cuanto haya conexión mediante iniciarEscuchaConfiguracionTallerFirestore().
+            try {
+                const guardadoRaw = localStorage.getItem(WORKSHOP_STORAGE_KEY);
+                if (guardadoRaw) {
+                    workshopConfig = { ...workshopConfig, ...JSON.parse(guardadoRaw) };
+                    aplicarConfiguracionTaller();
+                }
+            } catch (e) {
+                // localStorage no disponible; se mantienen los valores por defecto en memoria.
+            }
+        }
+        cargarConfiguracionTallerGuardada();
+
+        async function sincronizarConfiguracionTallerAFirestore(config) {
+            if (!firebaseListo) return false;
+            try {
+                await setDoc(doc(dbFirestore, 'config', 'taller'), config);
+                return true;
+            } catch (e) {
+                console.error('No se pudo sincronizar la configuración del taller con Firebase:', e);
+                return false;
+            }
+        }
+
+        function iniciarEscuchaConfiguracionTallerFirestore() {
+            if (!firebaseListo) return;
+            try {
+                onSnapshot(doc(dbFirestore, 'config', 'taller'), (snap) => {
+                    if (snap.exists()) {
+                        workshopConfig = { ...workshopConfig, ...snap.data() };
+                        try { localStorage.setItem(WORKSHOP_STORAGE_KEY, JSON.stringify(workshopConfig)); } catch (e) {}
+                        aplicarConfiguracionTaller();
+                    }
+                }, (error) => {
+                    console.error('Error escuchando la configuración del taller en Firebase:', error);
+                });
+            } catch (e) {
+                console.error('No se pudo iniciar la escucha de la configuración del taller:', e);
+            }
+        }
+
+        window.closeAllModals = function() {
+            document.getElementById('printer-config-panel').classList.add('hidden');
+            document.getElementById('workshop-config-panel').classList.add('hidden');
+            document.getElementById('api-key-panel').classList.add('hidden');
+            document.getElementById('edit-order-panel').classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+
+        window.openModal = function(panel) {
+            closeAllModals();
+            panel.classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-printer-config').addEventListener('click', (e) => { e.stopPropagation(); openModal(document.getElementById('printer-config-panel')); });
+        document.getElementById('btn-workshop-config').addEventListener('click', (e) => { e.stopPropagation(); openModal(document.getElementById('workshop-config-panel')); });
+        document.getElementById('btn-api-key').addEventListener('click', (e) => { e.stopPropagation(); openModal(document.getElementById('api-key-panel')); });
+        document.getElementById('modal-backdrop').addEventListener('click', closeAllModals);
+
+        async function guardarConfiguracionTaller() {
+            // Aplica los cambios de inmediato para que la modificación siempre se refleje,
+            // incluso si el guardado en la nube tarda o falla (modo local primero).
+            aplicarConfiguracionTaller();
+
+            let guardadoLocalOk = false;
+            try {
+                localStorage.setItem(WORKSHOP_STORAGE_KEY, JSON.stringify(workshopConfig));
+                guardadoLocalOk = true;
+            } catch (e) {
+                guardadoLocalOk = false;
+            }
+
+            const guardadoNubeOk = await sincronizarConfiguracionTallerAFirestore(workshopConfig);
+
+            closeAllModals();
+            if (guardadoNubeOk) {
+                showNotification("Configuración guardada y sincronizada con los demás dispositivos", "success");
+            } else if (guardadoLocalOk) {
+                showNotification("Configuración guardada en este dispositivo (sin conexión a la nube)", "success");
+            } else {
+                showNotification("No se pudo guardar la configuración", "error");
+            }
+        }
+
+        document.getElementById('btn-save-workshop').addEventListener('click', () => {
+            workshopConfig.name = document.getElementById('workshop-name-input').value.trim();
+            workshopConfig.address = document.getElementById('workshop-address-input').value.trim();
+            workshopConfig.ref = document.getElementById('workshop-ref-input').value.trim();
+            workshopConfig.phone = document.getElementById('workshop-phone-input').value.trim();
+            workshopConfig.social = document.getElementById('workshop-social-input').value.trim();
+
+            const logoFile = document.getElementById('workshop-logo-input').files[0];
+            if (logoFile) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    workshopConfig.logo = event.target.result;
+                    guardarConfiguracionTaller();
+                };
+                reader.readAsDataURL(logoFile);
+            } else {
+                guardarConfiguracionTaller();
+            }
+        });
+
+        document.getElementById('btn-clear-workshop').addEventListener('click', async () => {
+            workshopConfig = {
+                name: "RCP REPARACIÓN DE CELULARES PROFESIONAL",
+                address: "Independencia #248, Col. Centro, Los Mochis, Sinaloa.",
+                ref: "Frente a la tienda Milano.",
+                phone: "WhatsApp / Teléfono: 668 124 4214",
+                social: "TikTok: @ivan_tecnico | IG: @tallerdecelularesenlosmochis\nFacebook: RCP Reparación de Celulares Profesional",
+                logo: ""
+            };
+            aplicarConfiguracionTaller();
+
+            try {
+                localStorage.removeItem(WORKSHOP_STORAGE_KEY);
+            } catch (e) {
+                // localStorage no disponible; no afecta el restablecimiento en memoria.
+            }
+            await sincronizarConfiguracionTallerAFirestore(workshopConfig);
+
+            closeAllModals();
+            showNotification("Restablecido por defecto", "success");
+        });
+
+        // ==============================================================================
+        // MÓDULO BLUETOOTH ESC/POS CORREGIDO Y BLINDADO
+        // ==============================================================================
+        let bluetoothDevice = null;
+        let bluetoothCharacteristic = null;
+        const printerStatusText = document.getElementById('printer-status-text');
+        const printerDeviceName = document.getElementById('printer-device-name');
+        const btDebugLog = document.getElementById('bt-debug-log');
+
+        function btLog(msg) {
+            console.log('[BT]', msg);
+            if (btDebugLog) {
+                btDebugLog.innerText += `[${new Date().toLocaleTimeString('es-MX', { hour12: false })}] ${msg}\n`;
+                btDebugLog.scrollTop = btDebugLog.scrollHeight;
+            }
+        }
+
+        function onDisconnected() {
+            btLog('Impresora desconectada.');
+            printerStatusText.innerText = "Impresora";
+            printerDeviceName.innerText = `Estado: Desconectada`;
+            bluetoothCharacteristic = null;
+        }
+
+        async function conectarYObtenerCaracteristica(device) {
+            btLog(`Conectando a ${device.name || 'Impresora'}...`);
+            printerDeviceName.innerText = `Conectando a ${device.name || 'Impresora'}...`;
+            
+            device.addEventListener('gattserverdisconnected', onDisconnected);
+
+            const server = await escribirConTimeout(device.gatt.connect(), 10000);
+            btLog('Conectado al servidor GATT. Buscando servicios...');
+            const services = await server.getPrimaryServices();
+            
+            let foundChar = null;
+            for (let s of services) {
+                btLog(`Revisando servicio: ${s.uuid}`);
+                const chars = await s.getCharacteristics();
+                for (let c of chars) {
+                    if (c.properties.write || c.properties.writeWithoutResponse) {
+                        foundChar = c;
+                        btLog(`Característica encontrada: ${c.uuid}`);
+                        break;
+                    }
+                }
+                if (foundChar) break;
+            }
+            
+            if (!foundChar) {
+                throw new Error("No se encontró característica de escritura BLE en este dispositivo.");
+            }
+            
+            bluetoothCharacteristic = foundChar;
+            bluetoothDevice = device;
+            printerStatusText.innerText = "Conectada BT";
+            printerDeviceName.innerText = `Activa: ${device.name || 'Impresora'}`;
+            btLog('Lista para imprimir.');
+            return true;
+        }
+
+        async function reconectarBT() {
+            if (!bluetoothDevice) return false;
+            if (bluetoothDevice.gatt.connected && bluetoothCharacteristic) return true;
+            
+            btLog('Intentando reconectar al dispositivo...');
+            try {
+                await conectarYObtenerCaracteristica(bluetoothDevice);
+                return true;
+            } catch(e) {
+                btLog('Fallo al reconectar: ' + e.message);
+                return false;
+            }
+        }
+
+        async function asegurarConexionBT() {
+            if (!navigator.bluetooth) {
+                throw new Error("Bluetooth no soportado en este navegador.");
+            }
+            
+            if (await reconectarBT()) {
+                return true;
+            }
+            
+            btLog('Solicitando nuevo dispositivo Bluetooth...');
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: [
+                        '000018f0-0000-1000-8000-00805f9b34fb', 
+                        'e7810a71-73ae-499d-8c15-faa9aef0c3f2', 
+                        '49535343-fe7d-4ae5-8fa9-9fafd205e455', 
+                        '0000ff00-0000-1000-8000-00805f9b34fb'
+                    ]
+                });
+                await conectarYObtenerCaracteristica(device);
+                return true;
+            } catch (err) {
+                btLog('Error requestDevice: ' + err.message);
+                if (err.message && err.message.toLowerCase().includes('permissions policy')) {
+                    throw new Error("⚠️ Política de permisos bloquea Bluetooth. Usa Bluefy directamente.");
+                }
+                throw err;
+            }
+        }
+
+        function escribirConTimeout(promesa, ms = 6000) {
+            return Promise.race([
+                promesa,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Tiempo de espera agotado: la impresora dejó de responder.")), ms))
+            ]);
+        }
+
+        async function enviarDatosBT(datos, onProgreso) {
+            if (!bluetoothCharacteristic) throw new Error("No hay característica Bluetooth válida.");
+            
+            const CHUNK_SIZE = 128; // Chunk size seguro para evitar saturación MTU en Bluefy/iOS
+            const totalChunks = Math.ceil(datos.length / CHUNK_SIZE) || 1;
+            let chunkActual = 0;
+            for (let i = 0; i < datos.length; i += CHUNK_SIZE) {
+                const chunk = datos.slice(i, i + CHUNK_SIZE);
+                try {
+                    if (bluetoothCharacteristic.properties.writeWithoutResponse) {
+                        await escribirConTimeout(bluetoothCharacteristic.writeValueWithoutResponse(chunk));
+                    } else {
+                        await escribirConTimeout(bluetoothCharacteristic.writeValue(chunk));
+                    }
+                    await new Promise(r => setTimeout(r, 20)); // Pausa para no colapsar el buffer
+                    chunkActual++;
+                    if (onProgreso) onProgreso(chunkActual, totalChunks);
+                } catch(e) {
+                    btLog('Error escribiendo chunk: ' + e.message);
+                    throw new Error("Falló el envío de datos a la impresora: " + e.message);
+                }
+            }
+        }
+
+        document.getElementById('btn-pair-printer').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await asegurarConexionBT();
+                showNotification("Impresora vinculada", "success");
+                closeAllModals();
+            } catch (err) {
+                if (err.name !== 'NotFoundError') {
+                    showNotification(err.message, "error");
+                }
+            }
+        });
+
+        document.getElementById('btn-test-print').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await asegurarConexionBT();
+                const encoder = new TextEncoder();
+                // Inicializar impresora y alinear al centro
+                await enviarDatosBT(new Uint8Array([0x1B, 0x40]));
+                await enviarDatosBT(new Uint8Array([0x1B, 0x61, 0x01]));
+                
+                await enviarDatosBT(encoder.encode("\n--- RCP TEST OK ---\nImpresora 80mm conectada.\n\n\n"));
+                
+                // Corte parcial de papel
+                await enviarDatosBT(new Uint8Array([0x1D, 0x56, 0x41, 0x10]));
+                showNotification("Prueba exitosa", "success");
+            } catch (err) {
+                if (err.name !== 'NotFoundError') showNotification(err.message, "error");
+            }
+        });
+
+        async function imprimirImagenRasterESCPOS(base64ImageDataUrl, maxWidthPx = 380, onProgreso) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = async () => {
+                    try {
+                        const scale = Math.min(1, maxWidthPx / img.width);
+                        let w = Math.round(img.width * scale);
+                        let h = Math.round(img.height * scale);
+                        w = w - (w % 8); if (w <= 0) w = 8;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        const cctx = canvas.getContext('2d');
+                        cctx.fillStyle = '#ffffff'; cctx.fillRect(0, 0, w, h);
+                        cctx.drawImage(img, 0, 0, w, h);
+                        const imgData = cctx.getImageData(0, 0, w, h).data;
+                        const bytesPerRow = w / 8;
+                        const raster = new Uint8Array(bytesPerRow * h);
+                        for (let y = 0; y < h; y++) {
+                            for (let x = 0; x < w; x++) {
+                                const idx = (y * w + x) * 4;
+                                if ((imgData[idx] + imgData[idx+1] + imgData[idx+2]) / 3 < 180 && imgData[idx+3] > 10) {
+                                    raster[y * bytesPerRow + Math.floor(x / 8)] |= (1 << (7 - (x % 8)));
+                                }
+                            }
+                        }
+                        const header = new Uint8Array([0x1D, 0x76, 0x30, 0x00, bytesPerRow & 0xFF, (bytesPerRow >> 8) & 0xFF, h & 0xFF, (h >> 8) & 0xFF]);
+                        const fullPayload = new Uint8Array(header.length + raster.length);
+                        fullPayload.set(header, 0); fullPayload.set(raster, header.length);
+                        
+                        await enviarDatosBT(fullPayload, onProgreso);
+                        resolve(true);
+                    } catch (e) { 
+                        btLog('Error en Raster: ' + e.message);
+                        reject(e); 
+                    }
+                };
+                img.onerror = () => reject(new Error("Error procesando imagen para BT"));
+                img.src = base64ImageDataUrl;
+            });
+        }
+
+        async function imprimirDirectoBluetoothAOMU(orden) {
+            const t = document.getElementById('print-receipt-ticket');
+            const btnBT = document.getElementById('btn-print-bt');
+            try {
+                await asegurarConexionBT();
+                showNotification("Enviando a impresora...", "success");
+                btLog(`Iniciando impresión de orden ${orden.id}`);
+
+                // Initialize printer & Center alignment
+                await enviarDatosBT(new Uint8Array([0x1B, 0x40]));
+                await enviarDatosBT(new Uint8Array([0x1B, 0x61, 0x01]));
+
+                // Renderiza el ticket visual completo (el mismo diseño del botón "Imagen": logo, cajas, iconos)
+                // y lo envía como imagen rasterizada, en vez de texto plano.
+                btLog('Renderizando ticket visual...');
+                t.style.setProperty('display', 'block', 'important');
+                t.style.position = 'fixed'; t.style.left = '-9999px'; t.style.top = '0';
+                await new Promise(r => setTimeout(r, 150));
+                const canvas = await html2canvas(t, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+                t.style.removeProperty('display'); t.style.position = '';
+                const dataUrl = canvas.toDataURL('image/png');
+
+                btLog('Enviando imagen del ticket a la impresora...');
+                await imprimirImagenRasterESCPOS(dataUrl, 576, (actual, total) => {
+                    if (btnBT) btnBT.innerHTML = `<i class="fa-solid fa-bluetooth animate-pulse"></i> Imprimiendo ${Math.round(actual / total * 100)}%`;
+                });
+
+                // Corte de papel para 80mm
+                await enviarDatosBT(new Uint8Array([0x1D, 0x56, 0x41, 0x10]));
+
+                showNotification("Impresión terminada", "success");
+                btLog('Impresión finalizada.');
+            } catch (err) {
+                t.style.removeProperty('display'); t.style.position = '';
+                btLog('Error al imprimir: ' + err.message);
+                if (err.name !== 'NotFoundError') {
+                    showNotification(err.message, "error");
+                }
+            } finally {
+                if (btnBT) btnBT.innerHTML = `<i class="fa-solid fa-bluetooth"></i> Imprimir BT`;
+            }
+        }
+
+        const apiKeyInput = document.getElementById('api-key-input');
+        if (apiKeyInput) {
+            apiKey = localStorage.getItem('rcp_api_key') || apiKey;
+            apiKeyInput.value = apiKey;
+            document.getElementById('api-key-status').innerText = apiKey ? "API Configurada" : "Sin API Key";
+            document.getElementById('btn-save-api-key').addEventListener('click', () => {
+                localStorage.setItem('rcp_api_key', apiKeyInput.value.trim());
+                apiKey = apiKeyInput.value.trim();
+                document.getElementById('api-key-status').innerText = apiKey ? "API Configurada" : "Sin API Key";
+                closeAllModals();
+                showNotification("API Key guardada", "success");
+            });
+            document.getElementById('btn-clear-api-key').addEventListener('click', () => {
+                localStorage.removeItem('rcp_api_key');
+                apiKey = "";
+                apiKeyInput.value = "";
+                document.getElementById('api-key-status').innerText = "Sin API Key";
+                closeAllModals();
+                showNotification("API Key restablecida", "success");
+            });
+        }
+
+        let db = null;
+        let auth = null;
+        let useFirebase = false;
+
+        let ordenesReparacion = [];
+        let ordenSeleccionada = null;
+        let imagesArrayBase64 = [null, null, null, null];
+        let aiAnalysisResult = null;
+
+        let ultimoFolioNumero = 1;
+
+        function calcularProximoFolioNumero() {
+            let max = 0;
+            ordenesReparacion.forEach(o => {
+                const m = /RCP-(\d+)/.exec(o.id || "");
+                if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; }
+            });
+            const legacy = parseInt(localStorage.getItem('rcp_folio_num_final')) || 0;
+            return Math.max(max + 1, legacy);
+        }
+
+        function generarFolioStr() {
+            return `RCP-${String(ultimoFolioNumero).padStart(5, '0')}`;
+        }
+        function actualizarFolioUI() {
+            ultimoFolioNumero = calcularProximoFolioNumero();
+            document.getElementById('next-folio-display').innerText = generarFolioStr();
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await dbHelper.init();
+                ordenesReparacion = await dbHelper.getAll();
+                ultimoFolioNumero = calcularProximoFolioNumero();
+
+                if (ordenesReparacion.length === 0) {
+                    const ordenInventada = {
+                        id: generarFolioStr(),
+                        createdAt: Date.now(),
+                        fecha: new Date().toLocaleDateString('es-ES'),
+                        hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                        cliente: "Carlos Mendoza",
+                        telefono: "6681234567",
+                        modelo: "Xiaomi Redmi Note 12",
+                        color: "Azul Meteorito",
+                        imei: "864210987654321",
+                        password: "Sin bloqueo",
+                        patron: "",
+                        fechaEntrega: "05/08/2026",
+                        falla: "No enciende tras caerse al agua.",
+                        nota: "Se realizó limpieza ultrasónica en placa base.",
+                        presupuesto: "850.00",
+                        anticipo: "300.00",
+                        pendiente: "550.00",
+                        imagenes: [],
+                        firma: ""
+                    };
+                    await dbHelper.save(ordenInventada);
+                    ordenesReparacion.push(ordenInventada);
+                }
+
+                actualizarHistorial();
+                actualizarFolioUI();
+                if (ordenesReparacion.length > 0) seleccionarOrden(ordenesReparacion[0].id);
+            } catch(e) {}
+
+            // Autenticación y sincronización con Firebase: corre en segundo plano,
+            // la app ya es 100% usable de forma local mientras esto se conecta.
+            esperarAuthFirebase().then((user) => {
+                if (user) {
+                    iniciarEscuchaOrdenesFirestore();
+                    iniciarEscuchaConfiguracionTallerFirestore();
+                }
+            });
+        });
+
+        // PATRÓN
+        const patternCanvas = document.getElementById('pattern-canvas');
+        const patternCtx = patternCanvas ? patternCanvas.getContext('2d') : null;
+        let patternDots = [], activePatternNodes = [], isDrawingPattern = false, currentMousePos = null;
+
+        function initPatternCanvas() {
+            if (!patternCanvas) return;
+            const rect = patternCanvas.getBoundingClientRect();
+            if (rect.width === 0) return;
+            patternCanvas.width = rect.width; patternCanvas.height = rect.height;
+            const padding = rect.width * 0.2, step = (rect.width - padding * 2) / 2;
+            patternDots = []; let idx = 1;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    patternDots.push({ id: idx++, x: padding + c * step, y: padding + r * step, radius: rect.width * 0.05 });
+                }
+            }
+            renderPattern();
+        }
+
+        function renderPattern() {
+            if (!patternCtx) return;
+            patternCtx.clearRect(0, 0, patternCanvas.width, patternCanvas.height);
+            if (activePatternNodes.length > 0) {
+                patternCtx.strokeStyle = '#ff6b35'; patternCtx.lineWidth = 3; patternCtx.beginPath();
+                const start = patternDots[activePatternNodes[0] - 1];
+                patternCtx.moveTo(start.x, start.y);
+                for (let i = 1; i < activePatternNodes.length; i++) {
+                    const node = patternDots[activePatternNodes[i] - 1];
+                    patternCtx.lineTo(node.x, node.y);
+                }
+                if (isDrawingPattern && currentMousePos) patternCtx.lineTo(currentMousePos.x, currentMousePos.y);
+                patternCtx.stroke();
+            }
+            patternDots.forEach(dot => {
+                const active = activePatternNodes.includes(dot.id);
+                patternCtx.beginPath(); patternCtx.arc(dot.x, dot.y, active ? dot.radius * 1.3 : dot.radius, 0, Math.PI * 2);
+                patternCtx.fillStyle = active ? '#ff6b35' : '#1c2541'; patternCtx.fill();
+                patternCtx.strokeStyle = active ? '#fff' : '#4b5563'; patternCtx.stroke();
+            });
+        }
+
+        function getDot(x, y) {
+            for (let dot of patternDots) {
+                if (Math.hypot(dot.x - x, dot.y - y) <= dot.radius * 2.2) return dot.id;
+            }
+            return null;
+        }
+
+        if (patternCanvas) {
+            window.addEventListener('load', initPatternCanvas);
+            setTimeout(initPatternCanvas, 200);
+            patternCanvas.addEventListener('mousedown', (e) => {
+                const r = patternCanvas.getBoundingClientRect(), id = getDot(e.clientX - r.left, e.clientY - r.top);
+                if (id) { isDrawingPattern = true; activePatternNodes = [id]; renderPattern(); }
+            });
+            patternCanvas.addEventListener('mousemove', (e) => {
+                const r = patternCanvas.getBoundingClientRect();
+                currentMousePos = { x: e.clientX - r.left, y: e.clientY - r.top };
+                if (!isDrawingPattern) return;
+                const id = getDot(currentMousePos.x, currentMousePos.y);
+                if (id && !activePatternNodes.includes(id)) { activePatternNodes.push(id); document.getElementById('pattern-seq-text').innerText = `Secuencia: [ ${activePatternNodes.join(' ➔ ')} ]`; }
+                renderPattern();
+            });
+            window.addEventListener('mouseup', () => { isDrawingPattern = false; currentMousePos = null; renderPattern(); });
+            patternCanvas.addEventListener('touchstart', (e) => {
+                const r = patternCanvas.getBoundingClientRect(), id = getDot(e.touches[0].clientX - r.left, e.touches[0].clientY - r.top);
+                if (id) { isDrawingPattern = true; activePatternNodes = [id]; renderPattern(); }
+                e.preventDefault();
+            });
+            patternCanvas.addEventListener('touchmove', (e) => {
+                const r = patternCanvas.getBoundingClientRect();
+                currentMousePos = { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
+                if (!isDrawingPattern) return;
+                const id = getDot(currentMousePos.x, currentMousePos.y);
+                if (id && !activePatternNodes.includes(id)) { activePatternNodes.push(id); }
+                renderPattern(); e.preventDefault();
+            });
+            patternCanvas.addEventListener('touchend', () => { isDrawingPattern = false; currentMousePos = null; renderPattern(); });
+        }
+
+        document.getElementById('btn-clear-pattern').addEventListener('click', () => {
+            activePatternNodes = []; document.getElementById('pattern-seq-text').innerText = "Secuencia: Ninguna"; renderPattern();
+        });
+
+        // FIRMA
+        const sigCanvas = document.getElementById('signature-canvas');
+        const sigCtx = sigCanvas ? sigCanvas.getContext('2d') : null;
+        let isDrawingSig = false, lastX = 0, lastY = 0, signatureDrawn = false;
+
+        function resizeSig() {
+            if (!sigCanvas) return;
+            const r = sigCanvas.getBoundingClientRect();
+            if (r.width === 0) return;
+            sigCanvas.width = r.width; sigCanvas.height = r.height;
+            sigCtx.strokeStyle = '#ff6b35'; sigCtx.lineWidth = 2.5; sigCtx.lineCap = 'round';
+        }
+        resizeSig(); window.addEventListener('resize', resizeSig); setTimeout(resizeSig, 200);
+
+        function isCanvasEmpty(canvasEl) {
+            const blank = document.createElement('canvas');
+            blank.width = canvasEl.width; blank.height = canvasEl.height;
+            return canvasEl.toDataURL() === blank.toDataURL();
+        }
+
+        if (sigCanvas) {
+            sigCanvas.addEventListener('mousedown', (e) => { isDrawingSig = true; signatureDrawn = true; const r = sigCanvas.getBoundingClientRect(); lastX = e.clientX - r.left; lastY = e.clientY - r.top; });
+            sigCanvas.addEventListener('mousemove', (e) => {
+                if (!isDrawingSig) return;
+                const r = sigCanvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+                sigCtx.beginPath(); sigCtx.moveTo(lastX, lastY); sigCtx.lineTo(x, y); sigCtx.stroke();
+                lastX = x; lastY = y;
+            });
+            window.addEventListener('mouseup', () => isDrawingSig = false);
+            sigCanvas.addEventListener('touchstart', (e) => { isDrawingSig = true; signatureDrawn = true; const r = sigCanvas.getBoundingClientRect(); lastX = e.touches[0].clientX - r.left; lastY = e.touches[0].clientY - r.top; e.preventDefault(); });
+            sigCanvas.addEventListener('touchmove', (e) => {
+                if (!isDrawingSig) return;
+                const r = sigCanvas.getBoundingClientRect(), x = e.touches[0].clientX - r.left, y = e.touches[0].clientY - r.top;
+                sigCtx.beginPath(); sigCtx.moveTo(lastX, lastY); sigCtx.lineTo(x, y); sigCtx.stroke();
+                lastX = x; lastY = y; e.preventDefault();
+            });
+            sigCanvas.addEventListener('touchend', () => isDrawingSig = false);
+            document.getElementById('btn-clear-sig').addEventListener('click', () => { sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); signatureDrawn = false; });
+        }
+
+        // FOTOS Y IA
+        const fileInputs = document.querySelectorAll('.file-slot-input');
+        fileInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.slot), file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const comp = document.getElementById('compressor-canvas');
+                        const w = 300, h = img.height * (300 / img.width);
+                        comp.width = w; comp.height = h;
+                        comp.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const b64 = comp.toDataURL('image/jpeg', 0.5).split(',')[1];
+                        imagesArrayBase64[idx] = b64;
+                        document.getElementById(`slot-placeholder-${idx}`).classList.add('hidden');
+                        const prev = document.getElementById(`slot-preview-${idx}`);
+                        prev.src = `data:image/jpeg;base64,${b64}`; prev.classList.remove('hidden');
+                        img.src = '';
+                        
+                        const btn = document.getElementById('btn-run-ia');
+                        if (imagesArrayBase64.some(x => x !== null)) {
+                            btn.removeAttribute('disabled');
+                            btn.className = "w-full bg-orange-brand hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl cursor-pointer text-xs uppercase tracking-wider shadow-lg";
+                            document.getElementById('ia-btn-text').innerText = "Analizar Daños e Identificar con IA";
+                        }
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        document.getElementById('btn-run-ia').addEventListener('click', async () => {
+            const active = imagesArrayBase64.filter(x => x !== null);
+            if (active.length === 0) return;
+            if (!apiKey) {
+                showNotification("Configura tu API Key de Gemini primero (botón 'API')", "error");
+                openModal(document.getElementById('api-key-panel'));
+                return;
+            }
+            const btn = document.getElementById('btn-run-ia');
+            btn.setAttribute('disabled', 'true');
+            document.getElementById('ia-spinner').classList.remove('hidden');
+            document.getElementById('ia-btn-text').innerText = "Analizando dispositivo con IA...";
+            document.getElementById('scanner-visual').classList.remove('hidden');
+
+            const parts = [{ text: "Analiza las fotos del dispositivo. Devuelve exclusivamente JSON: {\"modelo\": \"Marca Modelo\", \"color\": \"Color\", \"danos_detectados\": [\"Daño 1\"], \"resumen_daño\": \"Resumen\"}" }];
+            active.forEach(b => parts.push({ inlineData: { mimeType: "image/jpeg", data: b } }));
+
+            const modelos = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"];
+            let resData = null;
+            for (const m of modelos) {
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { responseMimeType: "application/json" } })
+                    });
+                    if (r.ok) { resData = await r.json(); break; }
+                } catch(e){}
+            }
+
+            try {
+                if (!resData) throw new Error("No se pudo conectar con la IA.");
+                let text = resData.candidates[0].content.parts[0].text;
+                if (text.includes("```")) text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+                aiAnalysisResult = JSON.parse(text);
+
+                document.getElementById('device-model').value = aiAnalysisResult.modelo || "";
+                document.getElementById('device-color').value = aiAnalysisResult.color || "";
+                const block = document.getElementById('ai-damage-block'), badges = document.getElementById('ai-damage-badges');
+                block.classList.remove('hidden'); badges.innerHTML = "";
+                (aiAnalysisResult.danos_detectados || []).forEach(d => {
+                    badges.innerHTML += `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ${d}</span>`;
+                });
+                document.getElementById('ai-damage-summary').innerText = aiAnalysisResult.resumen_daño || "";
+                showNotification("Análisis IA completado", "success");
+            } catch (err) {
+                showNotification("Error en IA: " + err.message, "error");
+            } finally {
+                document.getElementById('ia-spinner').classList.add('hidden');
+                document.getElementById('scanner-visual').classList.add('hidden');
+                btn.removeAttribute('disabled');
+            }
+        });
+
+        // REGISTRO DE ORDEN BLINDADO CONTRA REINICIOS
+        document.getElementById('btn-submit-order').addEventListener('click', async (e) => {
+            e.preventDefault(); 
+            
+            const form = document.getElementById('form-ingreso');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            if (!signatureDrawn) {
+                showNotification("¡Firma requerida para guardar!", "error");
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btn-submit-order');
+            btnSubmit.setAttribute('disabled', 'true');
+            btnSubmit.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Guardando...`;
+
+            try {
+                const folio = generarFolioStr();
+                const presupuesto = parseFloat(document.getElementById('repair-budget').value) || 0;
+                const anticipo = parseFloat(document.getElementById('repair-advance').value) || 0;
+                const pendiente = Math.max(0, presupuesto - anticipo);
+                const notaTecnica = document.getElementById('repair-note').value.trim();
+
+                const nuevaOrden = {
+                    id: folio,
+                    createdAt: Date.now(),
+                    fecha: new Date().toLocaleDateString('es-ES'),
+                    hora: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                    cliente: document.getElementById('client-name').value.trim(),
+                    telefono: document.getElementById('client-phone').value.trim(),
+                    modelo: document.getElementById('device-model').value.trim(),
+                    color: document.getElementById('device-color').value.trim() || "No especificado",
+                    imei: document.getElementById('device-imei').value.trim(),
+                    password: document.getElementById('device-password').value.trim() || "Ninguno",
+                    patron: activePatternNodes.length > 0 ? patternCanvas.toDataURL() : "",
+                    fechaEntrega: document.getElementById('delivery-date').value ? new Date(document.getElementById('delivery-date').value).toLocaleDateString('es-ES') : "Por definir",
+                    falla: document.getElementById('repair-falla').value.trim(),
+                    nota: notaTecnica ? notaTecnica : "Sin observaciones técnicas.",
+                    presupuesto: presupuesto.toFixed(2),
+                    anticipo: anticipo.toFixed(2),
+                    pendiente: pendiente.toFixed(2),
+                    imagenes: imagesArrayBase64.filter(x => x !== null),
+                    firma: sigCanvas.toDataURL(),
+                    danosDetectados: (aiAnalysisResult && aiAnalysisResult.danos_detectados) ? aiAnalysisResult.danos_detectados : [],
+                    resumenDano: (aiAnalysisResult && aiAnalysisResult.resumen_daño) ? aiAnalysisResult.resumen_daño : ""
+                };
+
+                await dbHelper.save(nuevaOrden);
+                ordenesReparacion.unshift(nuevaOrden);
+                sincronizarOrdenAFirestore(nuevaOrden);
+
+                actualizarFolioUI();
+
+                actualizarHistorial();
+                seleccionarOrden(folio);
+                if (window.innerWidth < 1024) document.getElementById('tab-ordenes').click();
+                showNotification(`Orden ${folio} guardada exitosamente`, "success");
+
+                form.reset();
+                document.getElementById('repair-note').value = ""; 
+                sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+                signatureDrawn = false;
+                activePatternNodes = []; renderPattern(); document.getElementById('pattern-seq-text').innerText = "Secuencia: Ninguna";
+                imagesArrayBase64 = [null, null, null, null]; aiAnalysisResult = null;
+                document.getElementById('ai-damage-block').classList.add('hidden');
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`slot-placeholder-${i}`).classList.remove('hidden');
+                    document.getElementById(`slot-preview-${i}`).classList.add('hidden');
+                }
+            } catch (err) {
+                showNotification("Error crítico al guardar. Limpia tu navegador.", "error");
+            } finally {
+                btnSubmit.removeAttribute('disabled');
+                btnSubmit.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Registrar Entrada & Guardar Orden`;
+            }
+        });
+
+        document.getElementById('form-ingreso').addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+
+        function actualizarHistorial(filtro = "") {
+            const list = document.getElementById('orders-list'), placeholder = document.getElementById('no-orders-placeholder');
+            list.innerHTML = "";
+            const filt = ordenesReparacion.filter(o => `${o.id} ${o.cliente} ${o.imei}`.toLowerCase().includes(filtro.toLowerCase()));
+            document.getElementById('orders-count').innerText = ordenesReparacion.length;
+            const badge = document.getElementById('orders-badge');
+            if (badge) badge.innerText = `${ordenesReparacion.length} Órdenes`;
+            if (filt.length === 0) { placeholder.classList.remove('hidden'); return; }
+            placeholder.classList.add('hidden');
+
+            filt.forEach(o => {
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-xl border transition-all cursor-pointer flex justify-between items-center bg-navy-dark/60 border-gray-800 ${ordenSeleccionada?.id === o.id ? 'border-orange-brand bg-orange-brand/10' : ''}`;
+                item.addEventListener('click', () => seleccionarOrden(o.id));
+                item.innerHTML = `
+                    <div>
+                        <span class="text-xs font-mono font-bold text-orange-brand">${o.id}</span>
+                        <h4 class="text-xs font-extrabold text-white">${o.cliente}</h4>
+                        <p class="text-[10px] text-gray-400">${o.modelo}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold text-emerald-400 font-mono">$${o.presupuesto}</span>
+                    </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        function renderHistorialCliente(orden) {
+            const box = document.getElementById('ticket-client-history');
+            const list = document.getElementById('ticket-client-history-list');
+            if (!box || !list) return;
+            const tel = (orden.telefono || '').replace(/\D/g, '');
+            const relacionadas = tel ? ordenesReparacion.filter(o => o.id !== orden.id && (o.telefono || '').replace(/\D/g, '') === tel) : [];
+            if (relacionadas.length === 0) {
+                box.classList.add('hidden');
+                list.innerHTML = "";
+                return;
+            }
+            box.classList.remove('hidden');
+            const totalVisitas = relacionadas.length + 1;
+            list.innerHTML = `<span class="text-[10px] text-gray-300 mb-1">Cliente recurrente: <b class="text-white">${totalVisitas} reparaciones</b></span>`;
+            relacionadas.sort((a, b) => b.createdAt - a.createdAt).forEach(o => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center bg-navy-dark/60 hover:bg-navy-dark px-2 py-1.5 rounded-lg cursor-pointer border border-gray-800/60";
+                row.innerHTML = `
+                    <span class="text-[10px] text-gray-300"><b class="text-orange-brand font-mono">${o.id}</b> · ${o.modelo}</span>
+                    <span class="text-[9px] text-gray-500">${o.fecha}</span>`;
+                row.addEventListener('click', () => seleccionarOrden(o.id));
+                list.appendChild(row);
+            });
+        }
+
+        function seleccionarOrden(id) {
+            const o = ordenesReparacion.find(x => x.id === id);
+            if (!o) return;
+            ordenSeleccionada = o;
+            document.getElementById('ticket-container').classList.remove('hidden');
+            renderHistorialCliente(o);
+
+            document.getElementById('ticket-id').innerText = o.id;
+            document.getElementById('ticket-date').innerText = `${o.fecha} ${o.hora || ''}`;
+            document.getElementById('ticket-client').innerText = o.cliente;
+            document.getElementById('ticket-phone').innerText = o.telefono;
+            document.getElementById('ticket-device').innerText = o.modelo;
+            document.getElementById('ticket-color').innerText = o.color;
+            document.getElementById('ticket-imei').innerText = o.imei;
+            document.getElementById('ticket-password').innerText = o.password;
+            document.getElementById('ticket-falla').innerText = o.falla;
+            
+            document.getElementById('ticket-note').innerText = o.nota || "Sin observaciones técnicas.";
+
+            document.getElementById('ticket-budget').innerText = `$${o.presupuesto}`;
+            document.getElementById('ticket-advance').innerText = `$${o.anticipo || '0.00'}`;
+            document.getElementById('ticket-balance').innerText = `$${o.pendiente || '0.00'}`;
+
+            if (o.patron) {
+                document.getElementById('ticket-pattern-row').classList.remove('hidden');
+                document.getElementById('ticket-pattern-img').src = o.patron;
+            } else {
+                document.getElementById('ticket-pattern-row').classList.add('hidden');
+            }
+            if (o.firma) document.getElementById('ticket-signature-img').src = o.firma;
+
+            const aiBlock = document.getElementById('ticket-ai-damage-block');
+            const aiBadges = document.getElementById('ticket-ai-damage-badges');
+            const aiSummary = document.getElementById('ticket-ai-damage-summary');
+            if (aiBlock && aiBadges && aiSummary) {
+                if ((o.danosDetectados && o.danosDetectados.length > 0) || o.resumenDano) {
+                    aiBlock.classList.remove('hidden');
+                    aiBadges.innerHTML = "";
+                    (o.danosDetectados || []).forEach(d => {
+                        aiBadges.innerHTML += `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ${d}</span>`;
+                    });
+                    aiSummary.innerText = o.resumenDano || "";
+                } else {
+                    aiBlock.classList.add('hidden');
+                }
+            }
+
+            const ticketGalleryGrid = document.getElementById('ticket-gallery-grid');
+            if (ticketGalleryGrid) {
+                ticketGalleryGrid.innerHTML = "";
+                if (o.imagenes && o.imagenes.length > 0) {
+                    o.imagenes.forEach((imgBase64) => {
+                        const thumb = document.createElement('div');
+                        thumb.className = "w-full h-12 rounded-lg bg-navy-dark overflow-hidden border border-gray-800 cursor-pointer relative hover:border-orange-brand transition-all";
+                        thumb.title = "Ver imagen";
+                        thumb.innerHTML = `<img src="data:image/jpeg;base64,${imgBase64}" class="w-full h-full object-contain p-0.5 pointer-events-none">`;
+                        thumb.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openImageViewer(imgBase64);
+                        });
+                        ticketGalleryGrid.appendChild(thumb);
+                    });
+                } else {
+                    ticketGalleryGrid.innerHTML = `<span class="col-span-4 text-[10px] text-gray-500 italic text-center p-2">Sin imágenes</span>`;
+                }
+            }
+
+            // Datos térmicos para imprimir
+            document.getElementById('p-id').innerText = o.id;
+            document.getElementById('p-fecha').innerText = o.fecha;
+            document.getElementById('p-hora').innerText = o.hora || '';
+            document.getElementById('p-cliente').innerText = o.cliente;
+            document.getElementById('p-telefono').innerText = o.telefono;
+            document.getElementById('p-dispositivo').innerText = o.modelo;
+            document.getElementById('p-color').innerText = o.color;
+            document.getElementById('p-imei').innerText = o.imei;
+            document.getElementById('p-password').innerText = o.password;
+            document.getElementById('p-falla').innerText = o.falla;
+            
+            document.getElementById('p-nota').innerText = o.nota || "Sin observaciones técnicas.";
+
+            document.getElementById('p-total').innerText = `$${o.presupuesto}`;
+            document.getElementById('p-anticipo').innerText = `$${o.anticipo || '0.00'}`;
+            document.getElementById('p-pendiente').innerText = `$${o.pendiente || '0.00'}`;
+            document.getElementById('p-fecha-entrega').innerText = o.fechaEntrega;
+
+            if (o.patron) {
+                document.getElementById('p-pattern-print-box').style.display = 'block';
+                document.getElementById('p-pattern-img').src = o.patron;
+            } else {
+                document.getElementById('p-pattern-print-box').style.display = 'none';
+            }
+            if (o.firma) document.getElementById('p-signature-img').src = o.firma;
+
+            // ENLACE NATIVO A WHATSAPP APP
+            let telefonoLimpio = o.telefono.replace(/\D/g, '');
+            if (telefonoLimpio.length === 10) telefonoLimpio = '52' + telefonoLimpio;
+
+            const textoTicket = `📄 *${workshopConfig.name.trim()}*\n` +
+                                `*ORDEN DE RECEPCIÓN Y SERVICIO*\n` +
+                                `--------------------------------\n` +
+                                `*Folio:* ${o.id}\n` +
+                                `*Fecha:* ${o.fecha} ${o.hora || ''}\n` +
+                                `*Cliente:* ${o.cliente}\n` +
+                                `*Teléfono:* ${o.telefono}\n` +
+                                `--------------------------------\n` +
+                                `*📱 Equipo:* ${o.modelo}\n` +
+                                `*🎨 Color:* ${o.color}\n` +
+                                `*🔢 IMEI:* ${o.imei}\n` +
+                                `--------------------------------\n` +
+                                `*⚠️ Falla:* ${o.falla}\n` +
+                                `*📋 Diagnóstico:* ${o.nota || 'Sin observaciones'}\n` +
+                                `--------------------------------\n` +
+                                `*💵 Presupuesto:* $${o.presupuesto}\n` +
+                                `*💳 Anticipo:* $${o.anticipo || '0.00'}\n` +
+                                `*🔴 Pendiente:* $${o.pendiente || '0.00'}\n` +
+                                `--------------------------------\n` +
+                                `📌 *Para hacer válida la garantía, presente este mensaje.*`;
+
+            const wBtn = document.getElementById('btn-share-ticket');
+            if(wBtn) {
+                wBtn.href = `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(textoTicket)}`;
+            }
+
+            actualizarHistorial(document.getElementById('search-orders').value);
+        }
+
+        document.getElementById('search-orders').addEventListener('input', (e) => actualizarHistorial(e.target.value));
+
+        // ===================== RESPALDO: EXPORTAR / IMPORTAR =====================
+        document.getElementById('btn-export-backup').addEventListener('click', async () => {
+            try {
+                const datos = await dbHelper.getAll();
+                const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const fechaArchivo = new Date().toISOString().slice(0, 10);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `RCP_Respaldo_${fechaArchivo}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showNotification(`Respaldo de ${datos.length} órdenes descargado`, "success");
+            } catch (e) {
+                showNotification("Error al generar el respaldo", "error");
+            }
+        });
+
+        document.getElementById('btn-import-backup').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const texto = await file.text();
+                const datos = JSON.parse(texto);
+                if (!Array.isArray(datos)) throw new Error("Formato inválido");
+                let importadas = 0;
+                for (const orden of datos) {
+                    if (orden && orden.id) {
+                        await dbHelper.save(orden);
+                        sincronizarOrdenAFirestore(orden);
+                        importadas++;
+                    }
+                }
+                ordenesReparacion = await dbHelper.getAll();
+                actualizarHistorial();
+                actualizarFolioUI();
+                if (ordenesReparacion.length > 0) seleccionarOrden(ordenesReparacion[0].id);
+                showNotification(`${importadas} órdenes restauradas desde el respaldo`, "success");
+            } catch (err) {
+                showNotification("El archivo de respaldo no es válido", "error");
+            } finally {
+                e.target.value = "";
+            }
+        });
+
+        // ===================== EDITAR ORDEN =====================
+        function fechaLocalAInputDate(fechaLocal) {
+            const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(fechaLocal || "");
+            if (!m) return "";
+            const [, d, mo, y] = m;
+            return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+
+        document.getElementById('btn-edit-ticket').addEventListener('click', () => {
+            if (!ordenSeleccionada) return;
+            const o = ordenSeleccionada;
+            document.getElementById('edit-order-id').innerText = o.id;
+            document.getElementById('edit-client-name').value = o.cliente || "";
+            document.getElementById('edit-client-phone').value = o.telefono || "";
+            document.getElementById('edit-device-model').value = o.modelo || "";
+            document.getElementById('edit-device-color').value = o.color || "";
+            document.getElementById('edit-device-imei').value = o.imei || "";
+            document.getElementById('edit-repair-falla').value = o.falla || "";
+            document.getElementById('edit-repair-note').value = (o.nota && o.nota !== "Sin observaciones técnicas.") ? o.nota : "";
+            document.getElementById('edit-repair-budget').value = parseFloat(o.presupuesto) || 0;
+            document.getElementById('edit-repair-advance').value = parseFloat(o.anticipo) || 0;
+            document.getElementById('edit-device-password').value = (o.password && o.password !== "Ninguno") ? o.password : "";
+            document.getElementById('edit-delivery-date').value = fechaLocalAInputDate(o.fechaEntrega);
+            openModal(document.getElementById('edit-order-panel'));
+        });
+
+        document.getElementById('btn-save-edit-order').addEventListener('click', async () => {
+            if (!ordenSeleccionada) return;
+            const btn = document.getElementById('btn-save-edit-order');
+            btn.setAttribute('disabled', 'true');
+            try {
+                const presupuesto = parseFloat(document.getElementById('edit-repair-budget').value) || 0;
+                const anticipo = parseFloat(document.getElementById('edit-repair-advance').value) || 0;
+                const pendiente = Math.max(0, presupuesto - anticipo);
+                const notaTecnica = document.getElementById('edit-repair-note').value.trim();
+                const deliveryVal = document.getElementById('edit-delivery-date').value;
+
+                const actualizada = {
+                    ...ordenSeleccionada,
+                    cliente: document.getElementById('edit-client-name').value.trim(),
+                    telefono: document.getElementById('edit-client-phone').value.trim(),
+                    modelo: document.getElementById('edit-device-model').value.trim(),
+                    color: document.getElementById('edit-device-color').value.trim() || "No especificado",
+                    imei: document.getElementById('edit-device-imei').value.trim(),
+                    password: document.getElementById('edit-device-password').value.trim() || "Ninguno",
+                    fechaEntrega: deliveryVal ? new Date(deliveryVal).toLocaleDateString('es-ES') : "Por definir",
+                    falla: document.getElementById('edit-repair-falla').value.trim(),
+                    nota: notaTecnica ? notaTecnica : "Sin observaciones técnicas.",
+                    presupuesto: presupuesto.toFixed(2),
+                    anticipo: anticipo.toFixed(2),
+                    pendiente: pendiente.toFixed(2)
+                };
+
+                await dbHelper.save(actualizada);
+                const idx = ordenesReparacion.findIndex(o => o.id === actualizada.id);
+                if (idx >= 0) ordenesReparacion[idx] = actualizada;
+                sincronizarOrdenAFirestore(actualizada);
+
+                actualizarHistorial();
+                seleccionarOrden(actualizada.id);
+                closeAllModals();
+                showNotification(`Orden ${actualizada.id} actualizada`, "success");
+            } catch (err) {
+                showNotification("Error al guardar los cambios", "error");
+            } finally {
+                btn.removeAttribute('disabled');
+            }
+        });
+
+        // ===================== ELIMINAR ORDEN =====================
+        document.getElementById('btn-delete-ticket').addEventListener('click', async () => {
+            if (!ordenSeleccionada) return;
+            const id = ordenSeleccionada.id;
+            if (!confirm(`¿Eliminar la orden ${id}? Esta acción no se puede deshacer.`)) return;
+            try {
+                await dbHelper.delete(id);
+                ordenesReparacion = ordenesReparacion.filter(o => o.id !== id);
+                ordenSeleccionada = null;
+                document.getElementById('ticket-container').classList.add('hidden');
+                actualizarHistorial();
+                actualizarFolioUI();
+                eliminarOrdenDeFirestore(id);
+                if (ordenesReparacion.length > 0) seleccionarOrden(ordenesReparacion[0].id);
+                showNotification(`Orden ${id} eliminada`, "success");
+            } catch (err) {
+                showNotification("Error al eliminar la orden", "error");
+            }
+        });
+
+        document.getElementById('tab-registro').addEventListener('click', () => {
+            document.getElementById('tab-registro').className = "flex-1 py-2.5 px-3 rounded-lg font-bold text-white bg-orange-brand transition-all text-center shadow-md flex items-center justify-center gap-1.5";
+            document.getElementById('tab-ordenes').className = "flex-1 py-2.5 px-3 rounded-lg font-bold text-gray-300 transition-all text-center flex items-center justify-center gap-1.5";
+            document.getElementById('section-registro').classList.remove('hidden');
+            document.getElementById('section-ordenes').classList.add('hidden');
+        });
+        document.getElementById('tab-ordenes').addEventListener('click', () => {
+            document.getElementById('tab-ordenes').className = "flex-1 py-2.5 px-3 rounded-lg font-bold text-white bg-orange-brand transition-all text-center shadow-md flex items-center justify-center gap-1.5";
+            document.getElementById('tab-registro').className = "flex-1 py-2.5 px-3 rounded-lg font-bold text-gray-300 transition-all text-center flex items-center justify-center gap-1.5";
+            document.getElementById('section-registro').classList.add('hidden');
+            document.getElementById('section-ordenes').classList.remove('hidden');
+        });
+
+        // IMPRESIÓN POR BLUETOOTH REPARADA
+        let imprimiendoBT = false;
+        document.getElementById('btn-print-bt').addEventListener('click', async () => {
+            if (!ordenSeleccionada) { showNotification("Selecciona una orden", "error"); return; }
+            if (imprimiendoBT) return;
+            imprimiendoBT = true;
+            const btnBT = document.getElementById('btn-print-bt');
+            btnBT.setAttribute('disabled', 'true');
+            btnBT.classList.add('opacity-50', 'pointer-events-none');
+            try {
+                await imprimirDirectoBluetoothAOMU(ordenSeleccionada);
+            } finally {
+                imprimiendoBT = false;
+                btnBT.removeAttribute('disabled');
+                btnBT.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        });
+
+        document.getElementById('btn-copy-ticket').addEventListener('click', () => {
+            if (!ordenSeleccionada) return;
+            const textoTicket = `📄 *${workshopConfig.name.trim()}*\n` +
+                                `*ORDEN DE RECEPCIÓN Y SERVICIO*\n` +
+                                `--------------------------------\n` +
+                                `*Folio:* ${ordenSeleccionada.id}\n` +
+                                `*Fecha:* ${ordenSeleccionada.fecha} ${ordenSeleccionada.hora || ''}\n` +
+                                `*Cliente:* ${ordenSeleccionada.cliente}\n` +
+                                `*Teléfono:* ${ordenSeleccionada.telefono}\n` +
+                                `--------------------------------\n` +
+                                `*📱 Equipo:* ${ordenSeleccionada.modelo}\n` +
+                                `*🎨 Color:* ${ordenSeleccionada.color}\n` +
+                                `*🔢 IMEI:* ${ordenSeleccionada.imei}\n` +
+                                `--------------------------------\n` +
+                                `*⚠️ Falla:* ${ordenSeleccionada.falla}\n` +
+                                `*📋 Diagnóstico:* ${ordenSeleccionada.nota || 'Sin observaciones'}\n` +
+                                `--------------------------------\n` +
+                                `*💵 Presupuesto:* $${ordenSeleccionada.presupuesto}\n` +
+                                `*💳 Anticipo:* $${ordenSeleccionada.anticipo || '0.00'}\n` +
+                                `*🔴 Pendiente:* $${ordenSeleccionada.pendiente || '0.00'}\n` +
+                                `--------------------------------\n` +
+                                `📌 *Para hacer válida la garantía, presente este ticket.*`;
+
+            const el = document.createElement('textarea');
+            el.value = textoTicket;
+            el.setAttribute('readonly', '');
+            el.style.position = 'absolute'; el.style.left = '-9999px';
+            document.body.appendChild(el); el.select();
+            try {
+                document.execCommand('copy');
+                showNotification("¡Texto del ticket copiado!", "success");
+            } catch (err) {
+                showNotification("Error al copiar texto", "error");
+            }
+            document.body.removeChild(el);
+        });
+
+        const imageModal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        
+        function openImageViewer(base64) {
+            if (imageModal && modalImage) {
+                modalImage.src = `data:image/jpeg;base64,${base64}`;
+                imageModal.classList.remove('hidden');
+                imageModal.classList.add('flex');
+            }
+        }
+
+        document.getElementById('close-image-modal').addEventListener('click', () => {
+            imageModal.classList.add('hidden');
+            imageModal.classList.remove('flex');
+            modalImage.src = ""; // Limpia memoria crucial
+        });
+
+        document.getElementById('btn-print-ticket').addEventListener('click', async () => {
+            if (!ordenSeleccionada) { showNotification("Selecciona una orden", "error"); return; }
+            showNotification("Generando ticket...", "success");
+            const t = document.getElementById('print-receipt-ticket');
+            t.style.setProperty('display', 'block', 'important');
+            t.style.position = 'fixed'; t.style.left = '-9999px'; t.style.top = '0';
+            try {
+                await new Promise(r => setTimeout(r, 150));
+                const canvas = await html2canvas(t, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+                const url = canvas.toDataURL('image/png');
+                if (navigator.canShare) {
+                    try {
+                        const blob = await (await fetch(url)).blob();
+                        const file = new File([blob], `Ticket_${ordenSeleccionada.id}.png`, { type: 'image/png' });
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({ files: [file], title: `Orden ${ordenSeleccionada.id}` });
+                            t.style.removeProperty('display'); return;
+                        }
+                    } catch(e){}
+                }
+                const link = document.createElement('a'); link.href = url; link.download = `Ticket_${ordenSeleccionada.id}.png`;
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                showNotification("Ticket generado", "success");
+            } catch(e) {
+                showNotification("Error generando imagen", "error");
+            } finally {
+                t.style.removeProperty('display'); t.style.position = '';
+            }
+        });
+
+        function showNotification(msg, type) {
+            const el = document.getElementById(type === "success" ? "toast" : "toast-error");
+            document.getElementById(type === "success" ? "toast-text" : "toast-error-text").innerText = msg;
+            el.classList.remove('-translate-y-24', 'opacity-0'); el.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => { 
+                el.classList.add('-translate-y-24', 'opacity-0'); 
+                el.classList.remove('translate-y-0', 'opacity-100'); 
+            }, type === "success" ? 2500 : 4500);
+        }
+    </script>
+</body>
+</html>
