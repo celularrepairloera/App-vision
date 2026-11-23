@@ -14,7 +14,7 @@
         .text-orange-brand { color: #ff6b35; }
         .bg-orange-brand { background-color: #ff6b35; }
         
-        @keyframes scan {
+        @keyframes scan {    
             0% { top: 0%; opacity: 1; }
             50% { top: 100%; opacity: 1; }
             100% { top: 0%; opacity: 1; }
@@ -296,7 +296,7 @@
                     <span class="text-[10px] bg-orange-brand/10 text-orange-brand px-2 py-1 rounded-md font-extrabold uppercase tracking-widest">IA Escáner</span>
                 </div>
                 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <label class="relative border border-dashed border-gray-700 hover:border-orange-brand rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer bg-navy-dark/40 overflow-hidden group transition-all">
                         <input type="file" accept="image/*" class="hidden file-slot-input" data-slot="0">
                         <div id="slot-placeholder-0" class="text-center p-2 pointer-events-none">
@@ -332,6 +332,26 @@
                         </div>
                         <img id="slot-preview-3" class="w-full h-full object-contain hidden p-1 rounded-xl" alt="Borde Derecho">
                     </label>
+
+                    <label class="relative border border-dashed border-orange-brand/50 hover:border-orange-brand rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer bg-orange-950/10 overflow-hidden group transition-all col-span-2 sm:col-span-1">
+                        <input type="file" accept="image/*" class="hidden file-slot-input" data-slot="4">
+                        <div id="slot-placeholder-4" class="text-center p-2 pointer-events-none">
+                            <i class="fa-solid fa-tag text-lg text-orange-brand mb-1"></i>
+                            <p class="text-[9px] font-bold text-gray-300">Etiqueta / IMEI / Ajustes</p>
+                            <p class="text-[8px] text-gray-500 mt-0.5">Opcional · mejora la precisión</p>
+                        </div>
+                        <img id="slot-preview-4" class="w-full h-full object-contain hidden p-1 rounded-xl" alt="Etiqueta">
+                    </label>
+                </div>
+
+                <div class="flex flex-col gap-2 bg-navy-dark/40 p-3 rounded-xl border border-gray-800/60">
+                    <label class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Pista para la IA (opcional)</label>
+                    <input type="text" id="ai-hint-input" maxlength="80" placeholder="Ej. Samsung, creo que es serie A / es un iPhone 13" class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand">
+                    <label class="flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer select-none">
+                        <input type="checkbox" id="ai-deep-check" class="accent-orange-brand rounded">
+                        <span>Análisis profundo <span class="text-gray-500">(más lento, más preciso para modelos difíciles)</span></span>
+                    </label>
+                    <p class="text-[10px] text-gray-500 leading-snug"><i class="fa-solid fa-lightbulb text-amber-500"></i> Tip: una foto de la etiqueta de la tapa, de la bandeja SIM o de <b>Ajustes → Acerca del teléfono</b> (o marcar *#06#) da el modelo exacto.</p>
                 </div>
 
                 <div id="scanner-visual" class="relative w-full h-2 rounded-lg bg-gray-800 overflow-hidden hidden">
@@ -362,6 +382,8 @@
                         </div>
                     </div>
 
+                    <div id="client-suggestions" class="hidden flex-col gap-2 bg-orange-950/20 border border-orange-900/40 rounded-xl p-3"></div>
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-navy-dark/40 p-3.5 rounded-xl border border-gray-800/60">
                         <div class="flex flex-col gap-1.5">
                             <label class="text-[10px] uppercase font-bold tracking-wider text-orange-brand">Marca / Modelo *</label>
@@ -381,6 +403,8 @@
                         <span class="text-[10px] uppercase font-extrabold tracking-wider text-orange-brand flex items-center gap-1">
                             <i class="fa-solid fa-brain animate-pulse"></i> Área de Análisis IA:
                         </span>
+                        <div id="ai-id-line" class="flex flex-col gap-1.5"></div>
+                        <div id="ai-alt-chips" class="flex flex-wrap gap-1.5"></div>
                         <div id="ai-damage-badges" class="flex flex-wrap gap-1.5 mt-1"></div>
                         <p id="ai-damage-summary" class="text-xs text-gray-300 italic mt-1 leading-relaxed border-t border-orange-900/30 pt-2"></p>
                     </div>
@@ -496,7 +520,7 @@
                     <span id="orders-badge" class="bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full text-[10px] font-bold">0 Órdenes</span>
                 </h2>
                 
-                <input type="text" id="search-orders" placeholder="Buscar por Folio, Cliente o IMEI..." class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
+                <input type="text" id="search-orders" placeholder="Buscar cualquier cosa: nombre, modelo, folio, teléfono, falla..." class="w-full bg-navy-dark border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-brand font-medium">
 
                 <div class="flex gap-2">
                     <button type="button" id="btn-export-backup" title="Descargar un archivo con todas las órdenes" class="flex-1 flex items-center justify-center gap-1.5 bg-navy-dark border border-gray-800 hover:border-orange-brand text-gray-300 text-[11px] font-bold py-2 rounded-lg transition-all">
@@ -507,6 +531,8 @@
                         <input type="file" id="btn-import-backup" accept="application/json" class="hidden">
                     </label>
                 </div>
+
+                <div id="status-filters" class="flex flex-wrap gap-1.5"></div>
 
                 <div id="no-orders-placeholder" class="text-center py-8 text-gray-500 border border-dashed border-gray-800 rounded-xl bg-navy-dark/20">
                     <i class="fa-solid fa-cloud-arrow-down text-2xl mb-1.5 opacity-30"></i>
@@ -543,6 +569,17 @@
                         <button id="btn-delete-ticket" type="button" title="Eliminar Orden" class="text-[11px] bg-rose-950 hover:bg-rose-900 text-rose-400 border border-rose-900 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all">
                             <i class="fa-solid fa-trash"></i>
                         </button>
+                    </div>
+                </div>
+
+                <div id="ticket-status-block" class="flex flex-col gap-2 bg-navy-dark/40 border border-gray-800/80 rounded-xl p-3">
+                    <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Estado de la reparación</span>
+                    <div id="ticket-status-buttons" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5"></div>
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span id="ticket-status-time" class="text-[10px] text-gray-500"></span>
+                        <a id="btn-notify-ready" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-[11px] bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg items-center gap-1.5 font-bold transition-all shadow-md animate-pulse">
+                            <i class="fa-brands fa-whatsapp text-sm"></i> Avisar al cliente: equipo listo
+                        </a>
                     </div>
                 </div>
 
@@ -585,6 +622,7 @@
                         <span class="text-[9px] uppercase font-extrabold tracking-wider text-orange-brand flex items-center gap-1">
                             <i class="fa-solid fa-brain"></i> Análisis IA (al capturar):
                         </span>
+                        <p id="ticket-ai-id" class="text-[10px] text-gray-400 hidden"></p>
                         <div id="ticket-ai-damage-badges" class="flex flex-wrap gap-1.5"></div>
                         <p id="ticket-ai-damage-summary" class="text-xs text-gray-300 italic leading-relaxed border-t border-orange-900/30 pt-2"></p>
                     </div>
@@ -759,13 +797,14 @@
     <script type="module">
         // ==============================================================================
         // FIREBASE: conexión híbrida (local primero + nube en segundo plano)
+        // (SIN CAMBIOS: misma configuración, mismas colecciones, mismos campos)
         // ==============================================================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import {
             getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import {
-            getAuth, signInAnonymously, onAuthStateChanged
+            getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut
         } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -783,9 +822,30 @@
 
         let firebaseListo = false;
 
+        // ==============================================================================
+        // MODO SEGURO (recomendado): el PIN pasa a ser la contraseña de una cuenta de
+        // Firebase Authentication y Firebase la verifica en su servidor.
+        // Para activarlo: crea el usuario en la consola de Firebase, publica las reglas de
+        // firestore.rules y escribe aquí el correo de esa cuenta.
+        // Mientras esté vacío, la app funciona como antes (PIN local + sesión anónima).
+        // ==============================================================================
+        const SHOP_EMAIL = "";
+        const MODO_SEGURO = SHOP_EMAIL.length > 0;
+
         function esperarAuthFirebase() {
             return new Promise((resolve) => {
                 let resuelto = false;
+                if (MODO_SEGURO) {
+                    // En modo seguro NO se inicia sesión anónima: solo vale la cuenta del taller.
+                    onAuthStateChanged(authFirebase, (user) => {
+                        if (user && user.email === SHOP_EMAIL && !resuelto) {
+                            resuelto = true;
+                            firebaseListo = true;
+                            resolve(user);
+                        }
+                    });
+                    return;
+                }
                 onAuthStateChanged(authFirebase, (user) => {
                     if (user && !resuelto) {
                         resuelto = true;
@@ -800,44 +860,201 @@
             });
         }
 
+        // Escapa texto antes de insertarlo como HTML (evita que datos con símbolos < > " rompan o inyecten código)
+        function esc(valor) {
+            return String(valor ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
         // ==============================================================================
         // PANTALLA DE PIN DEL TALLER
         // ==============================================================================
-        const TALLER_PIN = "1980";
-        const PIN_REMEMBER_KEY = "rcp_pin_ok_device";
+        // El PIN ya NO aparece en el código: solo se guarda su huella (PBKDF2-SHA256).
+        // Aviso: en modo local esto solo es una barrera de cortesía; un PIN de 4 dígitos se puede
+        // adivinar por fuerza bruta. La protección real es el MODO SEGURO (arriba) + reglas de Firestore.
+        const PIN_SALT = "rcp-taller-v2-salt";
+        const PIN_ITER = 150000;
+        const PIN_HASH = "f12829796c86192c82ee5baf7a791df7e0ea302414ed4761f0e5eb57c34ca74f";
+        const PIN_REMEMBER_KEY = "rcp_pin_ok_hash";
+        const PIN_FAIL_KEY = "rcp_pin_fail";
 
         function ocultarPinGate() {
             const gate = document.getElementById('pin-gate-screen');
             if (gate) gate.remove();
         }
 
-        function validarPinTaller() {
+        // Respaldo en JavaScript puro (PBKDF2-HMAC-SHA256) para navegadores/páginas sin crypto.subtle
+        // (por ejemplo, abierto desde http:// o algunos visores). Da exactamente el mismo resultado.
+        const SHA_K = new Int32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+        const SHA_IV = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+        const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+        const SHA_W = new Int32Array(64);
+        function shaCompress(H) {
+            const W = SHA_W;
+            for (let t = 16; t < 64; t++) {
+                const a = W[t-15], b = W[t-2];
+                W[t] = (W[t-16] + (rotr(a,7) ^ rotr(a,18) ^ (a >>> 3)) + W[t-7] + (rotr(b,17) ^ rotr(b,19) ^ (b >>> 10))) | 0;
+            }
+            let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+            for (let t = 0; t < 64; t++) {
+                const t1 = (h + (rotr(e,6) ^ rotr(e,11) ^ rotr(e,25)) + ((e & f) ^ (~e & g)) + SHA_K[t] + W[t]) | 0;
+                const t2 = ((rotr(a,2) ^ rotr(a,13) ^ rotr(a,22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+                h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+            }
+            H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+            H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+        }
+        function shaBytes(bytes) {
+            const H = SHA_IV.slice(), len = bytes.length;
+            const total = Math.ceil((len + 9) / 64) * 64;
+            const buf = new Uint8Array(total);
+            buf.set(bytes); buf[len] = 0x80;
+            const bits = len * 8;
+            buf[total - 4] = (bits >>> 24) & 255; buf[total - 3] = (bits >>> 16) & 255; buf[total - 2] = (bits >>> 8) & 255; buf[total - 1] = bits & 255;
+            for (let o = 0; o < total; o += 64) {
+                for (let i = 0; i < 16; i++) SHA_W[i] = (buf[o+4*i] << 24) | (buf[o+4*i+1] << 16) | (buf[o+4*i+2] << 8) | buf[o+4*i+3];
+                shaCompress(H);
+            }
+            const out = new Uint8Array(32);
+            for (let i = 0; i < 8; i++) { out[4*i] = H[i] >>> 24; out[4*i+1] = H[i] >>> 16; out[4*i+2] = H[i] >>> 8; out[4*i+3] = H[i]; }
+            return out;
+        }
+        function pbkdf2Js(pinBytes, saltBytes, iter) {
+            let key = pinBytes.length > 64 ? shaBytes(pinBytes) : pinBytes;
+            const ip = new Uint8Array(64).fill(0x36), op = new Uint8Array(64).fill(0x5c);
+            for (let i = 0; i < key.length; i++) { ip[i] ^= key[i]; op[i] ^= key[i]; }
+            const stateDe = (pad) => {
+                const H = SHA_IV.slice();
+                for (let i = 0; i < 16; i++) SHA_W[i] = (pad[4*i] << 24) | (pad[4*i+1] << 16) | (pad[4*i+2] << 8) | pad[4*i+3];
+                shaCompress(H); return H;
+            };
+            const innerH = stateDe(ip), outerH = stateDe(op);
+            // Mensaje de 32 bytes (8 palabras) -> HMAC de 8 palabras
+            const hmac32 = (m) => {
+                let H = innerH.slice();
+                for (let i = 0; i < 8; i++) SHA_W[i] = m[i];
+                SHA_W[8] = 0x80000000 | 0; for (let i = 9; i < 15; i++) SHA_W[i] = 0; SHA_W[15] = (64 + 32) * 8;
+                shaCompress(H);
+                const d = H.slice(); H = outerH.slice();
+                for (let i = 0; i < 8; i++) SHA_W[i] = d[i];
+                SHA_W[8] = 0x80000000 | 0; for (let i = 9; i < 15; i++) SHA_W[i] = 0; SHA_W[15] = (64 + 32) * 8;
+                shaCompress(H);
+                return H;
+            };
+            // U1 = HMAC(pin, salt || 00000001)
+            const msg = new Uint8Array(saltBytes.length + 4); msg.set(saltBytes); msg[msg.length - 1] = 1;
+            let H = innerH.slice();
+            const blk = new Uint8Array(64); blk.set(msg); blk[msg.length] = 0x80;
+            const bits = (64 + msg.length) * 8; blk[62] = (bits >>> 8) & 255; blk[63] = bits & 255;
+            for (let i = 0; i < 16; i++) SHA_W[i] = (blk[4*i] << 24) | (blk[4*i+1] << 16) | (blk[4*i+2] << 8) | blk[4*i+3];
+            shaCompress(H);
+            const d = H.slice(); H = outerH.slice();
+            for (let i = 0; i < 8; i++) SHA_W[i] = d[i];
+            SHA_W[8] = 0x80000000 | 0; for (let i = 9; i < 15; i++) SHA_W[i] = 0; SHA_W[15] = (64 + 32) * 8;
+            shaCompress(H);
+            let U = H.slice(); const T = U.slice();
+            for (let n = 1; n < iter; n++) { U = hmac32(U); for (let i = 0; i < 8; i++) T[i] ^= U[i]; }
+            return Array.from(T).map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
+        }
+
+        async function huellaPin(pin) {
+            const enc = new TextEncoder();
+            if (!(window.crypto && crypto.subtle)) {
+                return pbkdf2Js(enc.encode(pin), enc.encode(PIN_SALT), PIN_ITER);
+            }
+            const base = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveBits"]);
+            const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: enc.encode(PIN_SALT), iterations: PIN_ITER, hash: "SHA-256" }, base, 256);
+            return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Bloqueo por intentos: 5 fallos seguidos => espera creciente (30s, 60s, 120s...)
+        function segundosBloqueo() {
+            try {
+                const f = JSON.parse(localStorage.getItem(PIN_FAIL_KEY) || '{"n":0,"t":0}');
+                if (f.n < 5) return 0;
+                const espera = 30 * Math.pow(2, Math.min(f.n - 5, 6));
+                return Math.max(0, Math.ceil((f.t + espera * 1000 - Date.now()) / 1000));
+            } catch (e) { return 0; }
+        }
+        function registrarFallo() {
+            try {
+                const f = JSON.parse(localStorage.getItem(PIN_FAIL_KEY) || '{"n":0,"t":0}');
+                localStorage.setItem(PIN_FAIL_KEY, JSON.stringify({ n: f.n + 1, t: Date.now() }));
+            } catch (e) {}
+        }
+        function limpiarFallos() { try { localStorage.removeItem(PIN_FAIL_KEY); } catch (e) {} }
+
+        async function validarPinTaller() {
             const input = document.getElementById('pin-gate-input');
             const err = document.getElementById('pin-gate-error');
+            const btn = document.getElementById('pin-gate-submit');
             const valor = input ? input.value.trim() : "";
-            if (valor === TALLER_PIN) {
-                try { localStorage.setItem(PIN_REMEMBER_KEY, "1"); } catch (e) {}
-                ocultarPinGate();
+            if (!valor) return;
+
+            const espera = segundosBloqueo();
+            if (espera > 0) {
+                err.textContent = `Demasiados intentos. Espera ${espera} s.`;
+                err.classList.remove('hidden');
                 return;
             }
-            if (err) err.classList.remove('hidden');
-            if (input) { input.value = ""; input.focus(); }
+            if (btn) btn.setAttribute('disabled', 'true');
+            try {
+                let correcto = false;
+                if (MODO_SEGURO) {
+                    try {
+                        await signInWithEmailAndPassword(authFirebase, SHOP_EMAIL, valor);
+                        correcto = true;
+                    } catch (e) {
+                        correcto = false;
+                        if (e && e.code === 'auth/network-request-failed') {
+                            err.textContent = "Sin conexión: en modo seguro se necesita internet para entrar.";
+                            err.classList.remove('hidden');
+                            return;
+                        }
+                    }
+                } else {
+                    correcto = (await huellaPin(valor)) === PIN_HASH;
+                    if (correcto) { try { localStorage.setItem(PIN_REMEMBER_KEY, PIN_HASH); } catch (e) {} }
+                }
+                if (correcto) {
+                    limpiarFallos();
+                    ocultarPinGate();
+                    return;
+                }
+                registrarFallo();
+                err.textContent = "PIN incorrecto, intenta de nuevo";
+                err.classList.remove('hidden');
+                if (input) { input.value = ""; input.focus(); }
+            } catch (e) {
+                err.textContent = "No se pudo verificar el PIN en este navegador.";
+                err.classList.remove('hidden');
+            } finally {
+                if (btn) btn.removeAttribute('disabled');
+            }
         }
 
         (function inicializarPinGate() {
-            let yaValidado = false;
-            try { yaValidado = localStorage.getItem(PIN_REMEMBER_KEY) === "1"; } catch (e) {}
-            if (yaValidado) {
-                ocultarPinGate();
-                return;
-            }
             const submitBtn = document.getElementById('pin-gate-submit');
             const input = document.getElementById('pin-gate-input');
             if (submitBtn) submitBtn.addEventListener('click', validarPinTaller);
             if (input) {
+                input.removeAttribute('maxlength');
+                input.setAttribute('autocomplete', 'current-password');
                 input.addEventListener('keydown', (e) => { if (e.key === 'Enter') validarPinTaller(); });
-                setTimeout(() => input.focus(), 300);
             }
+            if (MODO_SEGURO) {
+                // Si Firebase ya tiene una sesión válida de la cuenta del taller, entra directo.
+                const cancelar = onAuthStateChanged(authFirebase, (user) => {
+                    cancelar();
+                    if (user && user.email === SHOP_EMAIL) ocultarPinGate();
+                    else if (input) setTimeout(() => input.focus(), 300);
+                });
+                return;
+            }
+            // Modo local: recuerda este dispositivo solo si la huella guardada coincide
+            let yaValidado = false;
+            try { yaValidado = localStorage.getItem(PIN_REMEMBER_KEY) === PIN_HASH; } catch (e) {}
+            if (yaValidado) { ocultarPinGate(); return; }
+            if (input) setTimeout(() => input.focus(), 300);
         })();
 
         let apiKey = "";
@@ -1025,8 +1242,6 @@
             const headerNameEl = document.getElementById('header-workshop-name');
             if (headerNameEl) headerNameEl.textContent = workshopConfig.name || "RCP Reparación de Celulares";
 
-            // En este ticket profesional el titulo tiene breaks, lo dejamos que el usuario lo cambie pero evitamos problemas inyectando HTML.
-            document.getElementById('print-workshop-title').innerHTML = workshopConfig.name.replace(/ /g, '<br>');
             document.getElementById('print-workshop-title').innerText = workshopConfig.name;
             document.getElementById('print-workshop-address').innerText = workshopConfig.address;
             document.getElementById('print-workshop-ref').innerText = workshopConfig.ref;
@@ -1447,12 +1662,14 @@
             document.getElementById('btn-save-api-key').addEventListener('click', () => {
                 localStorage.setItem('rcp_api_key', apiKeyInput.value.trim());
                 apiKey = apiKeyInput.value.trim();
+                try { localStorage.removeItem('rcp_gemini_models_v2'); } catch (e) {}
                 document.getElementById('api-key-status').innerText = apiKey ? "API Configurada" : "Sin API Key";
                 closeAllModals();
                 showNotification("API Key guardada", "success");
             });
             document.getElementById('btn-clear-api-key').addEventListener('click', () => {
                 localStorage.removeItem('rcp_api_key');
+                try { localStorage.removeItem('rcp_gemini_models_v2'); } catch (e) {}
                 apiKey = "";
                 apiKeyInput.value = "";
                 document.getElementById('api-key-status').innerText = "Sin API Key";
@@ -1467,7 +1684,11 @@
 
         let ordenesReparacion = [];
         let ordenSeleccionada = null;
-        let imagesArrayBase64 = [null, null, null, null];
+        // Miniaturas pequeñas (300px) que SÍ se guardan en la orden / Firebase
+        let imagesArrayBase64 = [null, null, null, null, null];
+        // Versiones en alta resolución (1280px) que SOLO se usan para la IA y no se guardan
+        let imagesForAI = [null, null, null, null, null];
+        const SLOT_LABELS = ["Frente / Pantalla", "Atrás / Tapa", "Borde izquierdo", "Borde derecho", "Etiqueta / IMEI / Ajustes del teléfono"];
         let aiAnalysisResult = null;
 
         let ultimoFolioNumero = 1;
@@ -1662,7 +1883,9 @@
             document.getElementById('btn-clear-sig').addEventListener('click', () => { sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); signatureDrawn = false; });
         }
 
-        // FOTOS Y IA
+        // ==============================================================================
+        // FOTOS: miniatura pequeña para guardar + versión grande solo para la IA
+        // ==============================================================================
         const fileInputs = document.querySelectorAll('.file-slot-input');
         fileInputs.forEach(input => {
             input.addEventListener('change', (e) => {
@@ -1672,6 +1895,18 @@
                 reader.onload = (ev) => {
                     const img = new Image();
                     img.onload = () => {
+                        // 1) Versión de alta resolución SOLO para la IA (no se guarda en la orden)
+                        // Tamaño según la foto: la etiqueta necesita detalle para leer texto; los bordes casi no.
+                        // Menos píxeles = subida más rápida y menos trabajo para la IA.
+                        const AI_MAX = idx === 4 ? 1600 : (idx >= 2 ? 640 : 960);
+                        const aiScale = Math.min(1, AI_MAX / Math.max(img.width, img.height));
+                        const aiCanvas = document.createElement('canvas');
+                        aiCanvas.width = Math.max(1, Math.round(img.width * aiScale));
+                        aiCanvas.height = Math.max(1, Math.round(img.height * aiScale));
+                        aiCanvas.getContext('2d').drawImage(img, 0, 0, aiCanvas.width, aiCanvas.height);
+                        imagesForAI[idx] = aiCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+                        // 2) Miniatura pequeña que sí se guarda (mantiene las órdenes ligeras en Firebase)
                         const comp = document.getElementById('compressor-canvas');
                         const w = 300, h = img.height * (300 / img.width);
                         comp.width = w; comp.height = h;
@@ -1684,9 +1919,9 @@
                         img.src = '';
                         
                         const btn = document.getElementById('btn-run-ia');
-                        if (imagesArrayBase64.some(x => x !== null)) {
+                        if (imagesForAI.some(x => x !== null)) {
                             btn.removeAttribute('disabled');
-                            btn.className = "w-full bg-orange-brand hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl cursor-pointer text-xs uppercase tracking-wider shadow-lg";
+                            btn.className = "w-full bg-orange-brand hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl cursor-pointer text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2";
                             document.getElementById('ia-btn-text').innerText = "Analizar Daños e Identificar con IA";
                         }
                     };
@@ -1696,9 +1931,265 @@
             });
         });
 
+        // ==============================================================================
+        // IA: IDENTIFICACIÓN DE MODELO MEJORADA
+        // - Modelos de Gemini descubiertos automáticamente (no se rompe cuando Google cambia nombres)
+        // - Prompt que obliga a buscar primero texto/número de modelo y a no inventar
+        // - Respuesta con esquema JSON, nivel de confianza, evidencia y alternativas
+        // ==============================================================================
+        const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
+        // Si un modelo se queda colgado, se corta y se pasa al siguiente en vez de esperar sin fin
+        function tiempoLimite(ms) {
+            if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) return AbortSignal.timeout(ms);
+            const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal;
+        }
+        const GEMINI_FALLBACK_FLASH = ["gemini-flash-latest", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"];
+        const GEMINI_FALLBACK_PRO = ["gemini-pro-latest", "gemini-2.5-pro"];
+
+        const ESQUEMA_IA = {
+            type: "OBJECT",
+            properties: {
+                marca: { type: "STRING" },
+                modelo: { type: "STRING" },
+                numero_modelo: { type: "STRING" },
+                color: { type: "STRING" },
+                confianza: { type: "STRING", enum: ["alta", "media", "baja"] },
+                evidencia: { type: "STRING" },
+                alternativas: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: { modelo: { type: "STRING" }, razon: { type: "STRING" } },
+                        required: ["modelo"]
+                    }
+                },
+                imei_visible: { type: "STRING" },
+                danos_detectados: { type: "ARRAY", items: { type: "STRING" } },
+                resumen_dano: { type: "STRING" }
+            },
+            required: ["marca", "modelo", "confianza", "danos_detectados", "resumen_dano"]
+        };
+
+        function construirPromptIA(pista) {
+            let p = "Eres un técnico experto en reparación de celulares en México. Identifica el equipo que aparece en las fotos " +
+                "(cada imagen viene etiquetada con su posición) y detecta los daños visibles.\n\n" +
+                "REGLAS PARA IDENTIFICAR EL MODELO, EN ESTE ORDEN:\n" +
+                "1) Busca PRIMERO texto legible: número de modelo en la tapa, marco, etiqueta o bandeja SIM (ej. SM-A145M, A2849, XT2345-2, 23021RAA2Y, CPH2531), " +
+                "capturas de Ajustes > Acerca del teléfono, marca o nombre grabado y el IMEI.\n" +
+                "2) Después usa el diseño físico: forma y disposición del módulo de cámaras, flash, botones, muesca o isla de pantalla, bordes, puerto de carga y logotipos.\n" +
+                "3) Si tienes el número de modelo, úsalo para deducir el nombre comercial exacto (ej. A2849 = iPhone 14 Pro Max).\n" +
+                "4) NO INVENTES. Si no puedes distinguir entre variantes parecidas (ej. Redmi Note 12 vs Note 12S, Galaxy A14 vs A14 5G, iPhone 13 vs 14), dilo y baja la confianza.\n\n" +
+                "CAMPOS:\n" +
+                "- marca: fabricante (Apple, Samsung, Xiaomi, Motorola, Huawei, Oppo, Realme, ZTE, etc.).\n" +
+                "- modelo: nombre comercial más específico posible, SIN repetir la marca.\n" +
+                "- numero_modelo: el código de modelo si es legible; si no, cadena vacía.\n" +
+                "- color: color del equipo en español.\n" +
+                "- confianza: 'alta' solo si un texto o número de modelo lo confirma o el diseño es inconfundible; 'media' si es solo por diseño; 'baja' si es una suposición.\n" +
+                "- evidencia: una frase corta que diga qué viste para decidir.\n" +
+                "- alternativas: hasta 3 modelos posibles distintos al principal, cada uno con razón breve (déjalo vacío si estás seguro).\n" +
+                "- imei_visible: SOLO si lees el IMEI completo (15 dígitos) en las imágenes; si no, cadena vacía.\n" +
+                "- danos_detectados: lista corta de daños visibles (pantalla estrellada, marco doblado, cámara rota, tapa trasera quebrada, etc.).\n" +
+                "- resumen_dano: resumen breve del estado físico.\n" +
+                "Responde en español y devuelve únicamente el JSON.";
+            if (pista) {
+                p += `\n\nPista del técnico (puede estar equivocada, verifícala con las imágenes): "${pista}".`;
+            }
+            return p;
+        }
+
+        async function obtenerCandidatosGemini(profundo) {
+            // La lista de modelos se guarda 24 h en el dispositivo (antes se pedía en cada análisis)
+            let lista = null;
+            try {
+                const cache = JSON.parse(localStorage.getItem('rcp_gemini_models_v2') || 'null');
+                if (cache && Array.isArray(cache.lista) && Date.now() - cache.t < 24 * 3600 * 1000) lista = cache.lista;
+            } catch (e) {}
+            if (!lista) {
+                try {
+                    const r = await fetch(`${GEMINI_BASE}/models?pageSize=200`, { headers: { "x-goog-api-key": apiKey }, signal: tiempoLimite(5000) });
+                    if (r.ok) {
+                        const j = await r.json();
+                        lista = (j.models || [])
+                            .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+                            .map(m => String(m.name || '').replace(/^models\//, ''));
+                        try { localStorage.setItem('rcp_gemini_models_v2', JSON.stringify({ t: Date.now(), lista })); } catch (e) {}
+                    }
+                } catch (e) {}
+            }
+            lista = lista || [];
+
+            const valido = (n) => /^gemini-/.test(n) && !/(image|live|tts|audio|embedding|robotics|computer-use|thinking-exp|learnlm|gemma|native|customtools)/i.test(n);
+            const version = (n) => { const m = /^gemini-(\d+(?:\.\d+)?)/.exec(n); return m ? parseFloat(m[1]) : 0; };
+            const esPrev = (n) => /preview|exp/i.test(n) ? 1 : 0;
+            const ordenar = (arr) => arr.sort((a, b) => (version(b) - version(a)) || (esPrev(a) - esPrev(b)));
+
+            const flash = ordenar(lista.filter(n => valido(n) && /flash/i.test(n) && !/lite/i.test(n)));
+            const lite = ordenar(lista.filter(n => valido(n) && /flash-lite/i.test(n)));
+            const pro = ordenar(lista.filter(n => valido(n) && /-pro/i.test(n)));
+
+            let candidatos;
+            if (profundo) {
+                candidatos = [...pro.slice(0, 2), ...GEMINI_FALLBACK_PRO, ...flash.slice(0, 2), ...GEMINI_FALLBACK_FLASH];
+            } else {
+                candidatos = ["gemini-flash-latest", ...flash.slice(0, 3), ...lite.slice(0, 1), ...GEMINI_FALLBACK_FLASH];
+            }
+            // Quita repetidos; si la lista se obtuvo bien, descarta nombres que no existan para esta clave
+            const vistos = new Set();
+            const finales = [];
+            for (const n of candidatos) {
+                if (vistos.has(n)) continue;
+                vistos.add(n);
+                if (lista.length > 0 && !lista.includes(n) && !/-latest$/.test(n)) continue;
+                finales.push(n);
+            }
+            return finales.slice(0, 5);
+        }
+
+        // Se calienta la lista de modelos al abrir la app para que el análisis no espere por ella
+        if (apiKey) setTimeout(() => { obtenerCandidatosGemini(false).catch(() => {}); }, 1500);
+
+        async function llamarGemini(modelo, parts, usarEsquema, usarPensamiento, profundo) {
+            const generationConfig = { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 1200 };
+            if (usarEsquema) generationConfig.responseSchema = ESQUEMA_IA;
+            // Rapidez: en modo normal se apaga (o minimiza) el "razonamiento" interno del modelo,
+            // que era lo que más tiempo tomaba. En análisis profundo se deja activo.
+            if (usarPensamiento && !profundo && !/-pro/i.test(modelo)) {
+                generationConfig.thinkingConfig = /gemini-2\./.test(modelo) ? { thinkingBudget: 0 } : { thinkingLevel: "minimal" };
+            }
+            const r = await fetch(`${GEMINI_BASE}/models/${encodeURIComponent(modelo)}:generateContent`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+                body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig }),
+                signal: tiempoLimite(profundo ? 60000 : 20000)
+            });
+            if (r.ok) return { ok: true, status: r.status, data: await r.json() };
+            let mensaje = "";
+            try { const j = await r.json(); mensaje = (j.error && j.error.message) || ""; } catch (e) {}
+            return { ok: false, status: r.status, mensaje };
+        }
+
+        function limpiarJsonIA(texto) {
+            let t = String(texto || "").trim();
+            if (t.includes("```")) t = t.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const ini = t.indexOf('{'), fin = t.lastIndexOf('}');
+            if (ini >= 0 && fin > ini) t = t.slice(ini, fin + 1);
+            return JSON.parse(t);
+        }
+
+        function normalizarResultadoIA(raw) {
+            const marca = String(raw.marca || "").trim();
+            let modelo = String(raw.modelo || "").trim();
+            if (marca && modelo && !modelo.toLowerCase().startsWith(marca.toLowerCase())) modelo = `${marca} ${modelo}`;
+            else if (marca && !modelo) modelo = marca;
+            const conf = String(raw.confianza || "baja").toLowerCase();
+            return {
+                modelo,
+                marca,
+                numeroModelo: String(raw.numero_modelo || "").trim(),
+                color: String(raw.color || "").trim(),
+                confianza: ["alta", "media", "baja"].includes(conf) ? conf : "baja",
+                evidencia: String(raw.evidencia || "").trim(),
+                alternativas: Array.isArray(raw.alternativas) ? raw.alternativas.filter(a => a && a.modelo).slice(0, 3).map(a => ({ modelo: String(a.modelo), razon: String(a.razon || "") })) : [],
+                imeiVisible: String(raw.imei_visible || "").replace(/\D/g, ""),
+                danos_detectados: Array.isArray(raw.danos_detectados) ? raw.danos_detectados.map(String) : [],
+                resumen_daño: String(raw.resumen_dano || raw["resumen_daño"] || "")
+            };
+        }
+
+        function imeiValido(imei) {
+            if (!/^\d{15}$/.test(imei)) return false;
+            let suma = 0;
+            for (let i = 0; i < 15; i++) {
+                let d = parseInt(imei[i], 10);
+                if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+                suma += d;
+            }
+            return suma % 10 === 0;
+        }
+
+        function mostrarResultadoIA(res) {
+            const inputModelo = document.getElementById('device-model');
+            const inputColor = document.getElementById('device-color');
+            const inputImei = document.getElementById('device-imei');
+            if (res.modelo) inputModelo.value = res.modelo;
+            if (res.color) inputColor.value = res.color;
+
+            let notaImei = "";
+            if (res.imeiVisible) {
+                if (imeiValido(res.imeiVisible)) {
+                    if (!inputImei.value.trim()) { inputImei.value = res.imeiVisible; notaImei = `IMEI leído de la foto: ${res.imeiVisible} (verifica con *#06#)`; }
+                } else {
+                    notaImei = "Se vio un posible IMEI pero no pasó la validación; captúralo manualmente.";
+                }
+            }
+
+            const block = document.getElementById('ai-damage-block');
+            const idLine = document.getElementById('ai-id-line');
+            const chips = document.getElementById('ai-alt-chips');
+            const badges = document.getElementById('ai-damage-badges');
+            block.classList.remove('hidden');
+
+            // Línea de identificación: confianza + evidencia
+            idLine.innerHTML = "";
+            const estilos = {
+                alta: ["bg-emerald-950 text-emerald-400 border-emerald-800", "Confianza ALTA"],
+                media: ["bg-amber-950 text-amber-400 border-amber-800", "Confianza MEDIA · verifica el modelo"],
+                baja: ["bg-rose-950 text-rose-400 border-rose-800", "Confianza BAJA · confirma el modelo antes de guardar"]
+            };
+            const [clase, texto] = estilos[res.confianza];
+            const badgeConf = document.createElement('span');
+            badgeConf.className = `self-start text-[10px] border px-2 py-0.5 rounded font-bold ${clase}`;
+            badgeConf.textContent = texto + (res.numeroModelo ? ` · Nº modelo: ${res.numeroModelo}` : "");
+            idLine.appendChild(badgeConf);
+            if (res.evidencia) {
+                const ev = document.createElement('p');
+                ev.className = "text-[11px] text-gray-300 leading-snug";
+                ev.textContent = "Evidencia: " + res.evidencia;
+                idLine.appendChild(ev);
+            }
+            if (notaImei) {
+                const ni = document.createElement('p');
+                ni.className = "text-[10px] text-amber-400";
+                ni.textContent = notaImei;
+                idLine.appendChild(ni);
+            }
+
+            // Alternativas tocables
+            chips.innerHTML = "";
+            if (res.alternativas.length > 0 && res.confianza !== "alta") {
+                const t = document.createElement('span');
+                t.className = "w-full text-[9px] uppercase tracking-wider text-gray-500 font-bold";
+                t.textContent = "¿Será otro? Toca para usarlo:";
+                chips.appendChild(t);
+                res.alternativas.forEach(a => {
+                    const b = document.createElement('button');
+                    b.type = "button";
+                    b.className = "text-[10px] bg-navy-dark hover:bg-gray-800 text-gray-200 border border-gray-700 hover:border-orange-brand px-2 py-1 rounded-lg text-left";
+                    b.textContent = a.modelo + (a.razon ? ` — ${a.razon}` : "");
+                    b.addEventListener('click', () => {
+                        inputModelo.value = a.modelo;
+                        if (aiAnalysisResult) aiAnalysisResult.modelo = a.modelo;
+                        showNotification(`Modelo cambiado a ${a.modelo}`, "success");
+                    });
+                    chips.appendChild(b);
+                });
+            }
+
+            // Daños
+            badges.innerHTML = "";
+            res.danos_detectados.forEach(d => {
+                const s = document.createElement('span');
+                s.className = "text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded font-bold";
+                s.textContent = "⚠ " + d;
+                badges.appendChild(s);
+            });
+            document.getElementById('ai-damage-summary').innerText = res.resumen_daño || "";
+        }
+
         document.getElementById('btn-run-ia').addEventListener('click', async () => {
-            const active = imagesArrayBase64.filter(x => x !== null);
-            if (active.length === 0) return;
+            const activas = [];
+            imagesForAI.forEach((b64, i) => { if (b64) activas.push({ b64, etiqueta: SLOT_LABELS[i] }); });
+            if (activas.length === 0) return;
             if (!apiKey) {
                 showNotification("Configura tu API Key de Gemini primero (botón 'API')", "error");
                 openModal(document.getElementById('api-key-panel'));
@@ -1708,43 +2199,111 @@
             btn.setAttribute('disabled', 'true');
             document.getElementById('ia-spinner').classList.remove('hidden');
             document.getElementById('ia-btn-text').innerText = "Analizando dispositivo con IA...";
+            const t0IA = Date.now();
+            const estadoIA = { activos: new Set() };
+            const tIA = setInterval(() => {
+                // Muestra qué modelo(s) se están consultando, para saber si algo se atora
+                const activos = Array.from(estadoIA.activos).join(', ');
+                document.getElementById('ia-btn-text').innerText = `Analizando con IA... ${Math.round((Date.now() - t0IA) / 1000)} s` + (activos ? ` · ${activos}` : '');
+            }, 1000);
             document.getElementById('scanner-visual').classList.remove('hidden');
 
-            const parts = [{ text: "Analiza las fotos del dispositivo. Devuelve exclusivamente JSON: {\"modelo\": \"Marca Modelo\", \"color\": \"Color\", \"danos_detectados\": [\"Daño 1\"], \"resumen_daño\": \"Resumen\"}" }];
-            active.forEach(b => parts.push({ inlineData: { mimeType: "image/jpeg", data: b } }));
+            const pista = (document.getElementById('ai-hint-input').value || "").trim();
+            const profundo = document.getElementById('ai-deep-check').checked;
 
-            const modelos = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash-lite"];
-            let resData = null;
-            for (const m of modelos) {
+            const parts = [{ text: construirPromptIA(pista) }];
+            activas.forEach((a, n) => {
+                parts.push({ text: `Imagen ${n + 1}: ${a.etiqueta}` });
+                parts.push({ inlineData: { mimeType: "image/jpeg", data: a.b64 } });
+            });
+
+            let resultado = null;
+            let ultimoError = "";
+            let claveInvalida = false;
+
+            // Un intento completo con un modelo: primero lo más rápido (esquema + razonamiento mínimo);
+            // si el modelo rechaza algún parámetro (error 400), reintenta con menos opciones.
+            const intentarModelo = async (modelo) => {
+                estadoIA.activos.add(modelo);
                 try {
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
-                        method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { responseMimeType: "application/json" } })
+                    let r;
+                    for (const [esq, pens] of [[true, true], [true, false], [false, false]]) {
+                        r = await llamarGemini(modelo, parts, esq, pens, profundo).catch(e => ({ ok: false, status: 0, mensaje: (e.name === 'TimeoutError' || e.name === 'AbortError') ? 'no respondió a tiempo' : e.message }));
+                        if (r.ok || r.status !== 400 || /api key/i.test(r.mensaje || "")) break;
+                    }
+                    if (r.ok) {
+                        try {
+                            const texto = r.data.candidates[0].content.parts.map(p => p.text || "").join("");
+                            const res = normalizarResultadoIA(limpiarJsonIA(texto));
+                            res.modeloIA = modelo;
+                            return { ok: true, resultado: res };
+                        } catch (e) {
+                            return { ok: false, error: `Respuesta no válida de ${modelo}` };
+                        }
+                    }
+                    return {
+                        ok: false,
+                        error: `${modelo}: ${r.status || 'sin conexión'} ${r.mensaje || ''}`.trim(),
+                        claveInvalida: r.status === 401 || (r.status === 400 && /api key/i.test(r.mensaje || ""))
+                    };
+                } finally {
+                    estadoIA.activos.delete(modelo);
+                }
+            };
+
+            // Carrera de modelos: se lanza el primero; si falla se lanza el siguiente de inmediato, y si
+            // tarda más de 7 s se lanza otro EN PARALELO. Gana el primero que responda bien.
+            const carreraModelos = (candidatos) => new Promise((resolve) => {
+                let pendientes = 0, terminado = false, siguiente = 0, timer = null, errores = [];
+                const fin = (valor) => { if (terminado) return; terminado = true; clearTimeout(timer); resolve(valor); };
+                const lanzar = () => {
+                    if (terminado || siguiente >= candidatos.length) return false;
+                    const modelo = candidatos[siguiente++];
+                    pendientes++;
+                    intentarModelo(modelo).then((res) => {
+                        pendientes--;
+                        if (terminado) return;
+                        if (res.ok) return fin({ resultado: res.resultado });
+                        errores.push(res.error);
+                        if (res.claveInvalida) return fin({ claveInvalida: true, errores });
+                        if (!lanzar() && pendientes === 0) fin({ errores });
                     });
-                    if (r.ok) { resData = await r.json(); break; }
-                } catch(e){}
-            }
+                    return true;
+                };
+                const escalonar = () => {
+                    timer = setTimeout(() => { if (!terminado && lanzar()) escalonar(); }, 7000);
+                };
+                lanzar();
+                escalonar();
+            });
 
             try {
-                if (!resData) throw new Error("No se pudo conectar con la IA.");
-                let text = resData.candidates[0].content.parts[0].text;
-                if (text.includes("```")) text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-                aiAnalysisResult = JSON.parse(text);
+                const candidatos = (await obtenerCandidatosGemini(profundo)).slice(0, 4);
+                const ganador = await carreraModelos(candidatos);
+                resultado = ganador.resultado || null;
+                claveInvalida = !!ganador.claveInvalida;
+                ultimoError = (ganador.errores || []).slice(-2).join(' | ');
 
-                document.getElementById('device-model').value = aiAnalysisResult.modelo || "";
-                document.getElementById('device-color').value = aiAnalysisResult.color || "";
-                const block = document.getElementById('ai-damage-block'), badges = document.getElementById('ai-damage-badges');
-                block.classList.remove('hidden'); badges.innerHTML = "";
-                (aiAnalysisResult.danos_detectados || []).forEach(d => {
-                    badges.innerHTML += `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ${d}</span>`;
-                });
-                document.getElementById('ai-damage-summary').innerText = aiAnalysisResult.resumen_daño || "";
-                showNotification("Análisis IA completado", "success");
+                if (!resultado) {
+                    if (claveInvalida) throw new Error("La API Key no es válida. Revísala en el botón 'API'.");
+                    throw new Error("No se pudo identificar. " + (ultimoError ? `(${ultimoError.slice(0, 200)})` : "Revisa tu conexión."));
+                }
+
+                aiAnalysisResult = resultado;
+                mostrarResultadoIA(resultado);
+                const seg = Math.round((Date.now() - t0IA) / 1000);
+                if (resultado.confianza === "baja") {
+                    showNotification(`Confianza baja (${seg} s): confirma el modelo (Ajustes > Acerca del teléfono o *#06#)`, "error");
+                } else {
+                    showNotification(`Equipo identificado (${resultado.confianza}) en ${seg} s con ${resultado.modeloIA}`, "success");
+                }
             } catch (err) {
                 showNotification("Error en IA: " + err.message, "error");
             } finally {
+                clearInterval(tIA);
                 document.getElementById('ia-spinner').classList.add('hidden');
                 document.getElementById('scanner-visual').classList.add('hidden');
+                document.getElementById('ia-btn-text').innerText = "Analizar Daños e Identificar con IA";
                 btn.removeAttribute('disabled');
             }
         });
@@ -1796,7 +2355,14 @@
                     imagenes: imagesArrayBase64.filter(x => x !== null),
                     firma: sigCanvas.toDataURL(),
                     danosDetectados: (aiAnalysisResult && aiAnalysisResult.danos_detectados) ? aiAnalysisResult.danos_detectados : [],
-                    resumenDano: (aiAnalysisResult && aiAnalysisResult.resumen_daño) ? aiAnalysisResult.resumen_daño : ""
+                    resumenDano: (aiAnalysisResult && aiAnalysisResult.resumen_daño) ? aiAnalysisResult.resumen_daño : "",
+                    // Campos nuevos y opcionales (las órdenes anteriores siguen funcionando igual)
+                    confianzaIA: aiAnalysisResult ? aiAnalysisResult.confianza : "",
+                    evidenciaIA: aiAnalysisResult ? aiAnalysisResult.evidencia : "",
+                    numeroModeloIA: aiAnalysisResult ? aiAnalysisResult.numeroModelo : "",
+                    estado: 'recibido',
+                    estadoActualizado: Date.now(),
+                    historialEstados: [{ estado: 'recibido', t: Date.now() }]
                 };
 
                 await dbHelper.save(nuevaOrden);
@@ -1812,15 +2378,26 @@
 
                 form.reset();
                 document.getElementById('repair-note').value = ""; 
+                document.getElementById('ai-hint-input').value = "";
+                document.getElementById('ai-deep-check').checked = false;
                 sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
                 signatureDrawn = false;
                 activePatternNodes = []; renderPattern(); document.getElementById('pattern-seq-text').innerText = "Secuencia: Ninguna";
-                imagesArrayBase64 = [null, null, null, null]; aiAnalysisResult = null;
+                imagesArrayBase64 = [null, null, null, null, null];
+                imagesForAI = [null, null, null, null, null];
+                aiAnalysisResult = null;
                 document.getElementById('ai-damage-block').classList.add('hidden');
-                for (let i = 0; i < 4; i++) {
+                document.getElementById('ai-id-line').innerHTML = "";
+                document.getElementById('ai-alt-chips').innerHTML = "";
+                for (let i = 0; i < 5; i++) {
                     document.getElementById(`slot-placeholder-${i}`).classList.remove('hidden');
                     document.getElementById(`slot-preview-${i}`).classList.add('hidden');
                 }
+                fileInputs.forEach(inp => { inp.value = ""; });
+                const btnIA = document.getElementById('btn-run-ia');
+                btnIA.setAttribute('disabled', 'true');
+                btnIA.className = "w-full bg-gray-800 text-gray-500 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-not-allowed text-xs uppercase tracking-wider";
+                document.getElementById('ia-btn-text').innerText = "Subir imágenes para escanear con IA";
             } catch (err) {
                 showNotification("Error crítico al guardar. Limpia tu navegador.", "error");
             } finally {
@@ -1833,10 +2410,123 @@
             e.preventDefault();
         });
 
+        // ===================== ESTADOS DE LA ORDEN =====================
+        // Se guardan en la orden como campos opcionales (estado, estadoActualizado, historialEstados);
+        // las órdenes anteriores sin estado se consideran "Recibido".
+        const ESTADO_ORDEN = ['recibido', 'en_reparacion', 'listo', 'entregado'];
+        const ESTADOS = {
+            recibido:      { label: 'Recibido',      icon: 'fa-inbox',             on: 'bg-sky-600 text-white border-sky-500',         badge: 'bg-sky-950 text-sky-400 border-sky-800' },
+            en_reparacion: { label: 'En reparación', icon: 'fa-screwdriver-wrench', on: 'bg-amber-600 text-white border-amber-500',     badge: 'bg-amber-950 text-amber-400 border-amber-800' },
+            listo:         { label: 'Listo',         icon: 'fa-circle-check',       on: 'bg-emerald-600 text-white border-emerald-500', badge: 'bg-emerald-950 text-emerald-400 border-emerald-800' },
+            entregado:     { label: 'Entregado',     icon: 'fa-handshake',          on: 'bg-gray-600 text-white border-gray-500',       badge: 'bg-gray-800 text-gray-300 border-gray-700' }
+        };
+        const estadoDe = (o) => (o && ESTADOS[o.estado]) ? o.estado : 'recibido';
+        let filtroEstado = 'todas';
+
+        function renderFiltrosEstado() {
+            const cont = document.getElementById('status-filters');
+            if (!cont) return;
+            const cuenta = { todas: ordenesReparacion.length };
+            ESTADO_ORDEN.forEach(e => { cuenta[e] = ordenesReparacion.filter(o => estadoDe(o) === e).length; });
+            cont.innerHTML = "";
+            [['todas', 'Todas'], ...ESTADO_ORDEN.map(e => [e, ESTADOS[e].label])].forEach(([clave, texto]) => {
+                const activo = filtroEstado === clave;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = `text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all ${activo ? 'bg-orange-brand text-white border-orange-500' : 'bg-navy-dark text-gray-300 border-gray-800 hover:border-orange-brand'}`;
+                b.textContent = `${texto} (${cuenta[clave]})`;
+                b.addEventListener('click', () => {
+                    filtroEstado = clave;
+                    actualizarHistorial(document.getElementById('search-orders').value);
+                });
+                cont.appendChild(b);
+            });
+        }
+
+        function mensajeListo(o) {
+            const pendiente = parseFloat(o.pendiente) || 0;
+            let t = `Hola ${o.cliente}, le informamos que su equipo *${o.modelo}* (folio ${o.id}) ya está *LISTO* para recoger. ✅\n`;
+            if (pendiente > 0) t += `💵 Saldo pendiente: *$${pendiente.toFixed(2)}*\n`;
+            t += `\n📌 Presente su ticket o mencione su folio para la entrega.\n`;
+            if (workshopConfig.address) t += `📍 ${workshopConfig.address}${workshopConfig.ref ? ' (' + workshopConfig.ref + ')' : ''}\n`;
+            t += `\n${(workshopConfig.name || '').trim()}`;
+            return t;
+        }
+
+        function renderEstadoTicket(o) {
+            const actual = estadoDe(o);
+            const cont = document.getElementById('ticket-status-buttons');
+            if (!cont) return;
+            cont.innerHTML = "";
+            ESTADO_ORDEN.forEach(e => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                const on = e === actual;
+                b.className = `text-[10px] font-bold px-2 py-2 rounded-lg border flex items-center justify-center gap-1.5 transition-all ${on ? ESTADOS[e].on : 'bg-navy-dark text-gray-400 border-gray-800 hover:border-orange-brand'}`;
+                b.innerHTML = `<i class="fa-solid ${ESTADOS[e].icon}"></i> ${esc(ESTADOS[e].label)}`;
+                b.addEventListener('click', () => cambiarEstadoOrden(o.id, e));
+                cont.appendChild(b);
+            });
+            const tiempo = document.getElementById('ticket-status-time');
+            if (tiempo) {
+                tiempo.innerText = o.estadoActualizado
+                    ? `Actualizado: ${new Date(o.estadoActualizado).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}`
+                    : '';
+            }
+            const aviso = document.getElementById('btn-notify-ready');
+            if (aviso) {
+                let tel = (o.telefono || '').replace(/\D/g, '');
+                if (tel.length === 10) tel = '52' + tel;
+                if (actual === 'listo' && tel) {
+                    aviso.href = `https://wa.me/${tel}?text=${encodeURIComponent(mensajeListo(o))}`;
+                    aviso.classList.remove('hidden'); aviso.classList.add('flex');
+                } else {
+                    aviso.classList.add('hidden'); aviso.classList.remove('flex');
+                }
+            }
+        }
+
+        async function cambiarEstadoOrden(id, nuevo) {
+            const o = ordenesReparacion.find(x => x.id === id);
+            if (!o || estadoDe(o) === nuevo) return;
+            try {
+                const ahora = Date.now();
+                const hist = Array.isArray(o.historialEstados) ? o.historialEstados.slice() : [];
+                if (hist.length === 0) hist.push({ estado: estadoDe(o), t: o.createdAt || ahora });
+                hist.push({ estado: nuevo, t: ahora });
+                const actualizada = { ...o, estado: nuevo, estadoActualizado: ahora, historialEstados: hist };
+                await dbHelper.save(actualizada);
+                const idx = ordenesReparacion.findIndex(x => x.id === id);
+                if (idx >= 0) ordenesReparacion[idx] = actualizada;
+                sincronizarOrdenAFirestore(actualizada);
+                const buscador = document.getElementById('search-orders');
+                actualizarHistorial(buscador ? buscador.value : "");
+                seleccionarOrden(id);
+                showNotification(nuevo === 'listo' ? `${id} marcada como LISTA. Avisa al cliente con el botón verde` : `${id}: ${ESTADOS[nuevo].label}`, "success");
+            } catch (e) {
+                showNotification("No se pudo cambiar el estado", "error");
+            }
+        }
+
         function actualizarHistorial(filtro = "") {
             const list = document.getElementById('orders-list'), placeholder = document.getElementById('no-orders-placeholder');
             list.innerHTML = "";
-            const filt = ordenesReparacion.filter(o => `${o.id} ${o.cliente} ${o.imei}`.toLowerCase().includes(filtro.toLowerCase()));
+            // Búsqueda libre: ignora mayúsculas y acentos, y cada palabra escrita debe aparecer
+            // en cualquier dato de la orden (folio, cliente, teléfono, modelo, color, IMEI, falla, nota, fechas, montos...)
+            const normalizar = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            const palabras = normalizar(filtro).split(/\s+/).filter(Boolean);
+            const porBusqueda = palabras.length === 0 ? ordenesReparacion : ordenesReparacion.filter(o => {
+                const texto = normalizar([
+                    o.id, o.cliente, o.telefono, o.modelo, o.color, o.imei, o.password,
+                    o.falla, o.nota, o.fecha, o.hora, o.fechaEntrega,
+                    o.presupuesto, o.anticipo, o.pendiente,
+                    o.resumenDano, o.numeroModeloIA, ESTADOS[estadoDe(o)].label, ...(o.danosDetectados || [])
+                ].join(' '));
+                const soloDigitos = texto.replace(/\D/g, '');
+                return palabras.every(p => texto.includes(p) || (/^\d{3,}$/.test(p) && soloDigitos.includes(p)));
+            });
+            const filt = filtroEstado === 'todas' ? porBusqueda : porBusqueda.filter(o => estadoDe(o) === filtroEstado);
+            renderFiltrosEstado();
             document.getElementById('orders-count').innerText = ordenesReparacion.length;
             const badge = document.getElementById('orders-badge');
             if (badge) badge.innerText = `${ordenesReparacion.length} Órdenes`;
@@ -1849,12 +2539,13 @@
                 item.addEventListener('click', () => seleccionarOrden(o.id));
                 item.innerHTML = `
                     <div>
-                        <span class="text-xs font-mono font-bold text-orange-brand">${o.id}</span>
-                        <h4 class="text-xs font-extrabold text-white">${o.cliente}</h4>
-                        <p class="text-[10px] text-gray-400">${o.modelo}</p>
+                        <span class="text-xs font-mono font-bold text-orange-brand">${esc(o.id)}</span>
+                        <h4 class="text-xs font-extrabold text-white">${esc(o.cliente)}</h4>
+                        <p class="text-[10px] text-gray-400">${esc(o.modelo)}</p>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs font-bold text-emerald-400 font-mono">$${o.presupuesto}</span>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <span class="text-xs font-bold text-emerald-400 font-mono">$${esc(o.presupuesto)}</span>
+                        <span class="text-[9px] font-bold border px-1.5 py-0.5 rounded ${ESTADOS[estadoDe(o)].badge}">${esc(ESTADOS[estadoDe(o)].label)}</span>
                     </div>`;
                 list.appendChild(item);
             });
@@ -1878,8 +2569,8 @@
                 const row = document.createElement('div');
                 row.className = "flex justify-between items-center bg-navy-dark/60 hover:bg-navy-dark px-2 py-1.5 rounded-lg cursor-pointer border border-gray-800/60";
                 row.innerHTML = `
-                    <span class="text-[10px] text-gray-300"><b class="text-orange-brand font-mono">${o.id}</b> · ${o.modelo}</span>
-                    <span class="text-[9px] text-gray-500">${o.fecha}</span>`;
+                    <span class="text-[10px] text-gray-300"><b class="text-orange-brand font-mono">${esc(o.id)}</b> · ${esc(o.modelo)}</span>
+                    <span class="text-[9px] text-gray-500">${esc(o.fecha)}</span>`;
                 row.addEventListener('click', () => seleccionarOrden(o.id));
                 list.appendChild(row);
             });
@@ -1891,6 +2582,7 @@
             ordenSeleccionada = o;
             document.getElementById('ticket-container').classList.remove('hidden');
             renderHistorialCliente(o);
+            renderEstadoTicket(o);
 
             document.getElementById('ticket-id').innerText = o.id;
             document.getElementById('ticket-date').innerText = `${o.fecha} ${o.hora || ''}`;
@@ -1919,14 +2611,26 @@
             const aiBlock = document.getElementById('ticket-ai-damage-block');
             const aiBadges = document.getElementById('ticket-ai-damage-badges');
             const aiSummary = document.getElementById('ticket-ai-damage-summary');
+            const aiIdLine = document.getElementById('ticket-ai-id');
             if (aiBlock && aiBadges && aiSummary) {
-                if ((o.danosDetectados && o.danosDetectados.length > 0) || o.resumenDano) {
+                if ((o.danosDetectados && o.danosDetectados.length > 0) || o.resumenDano || o.confianzaIA) {
                     aiBlock.classList.remove('hidden');
                     aiBadges.innerHTML = "";
                     (o.danosDetectados || []).forEach(d => {
-                        aiBadges.innerHTML += `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ${d}</span>`;
+                        aiBadges.innerHTML += `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(d)}</span>`;
                     });
                     aiSummary.innerText = o.resumenDano || "";
+                    if (aiIdLine) {
+                        if (o.confianzaIA) {
+                            const partes = [`Identificación IA: confianza ${o.confianzaIA}`];
+                            if (o.numeroModeloIA) partes.push(`Nº modelo ${o.numeroModeloIA}`);
+                            if (o.evidenciaIA) partes.push(o.evidenciaIA);
+                            aiIdLine.innerText = partes.join(' · ');
+                            aiIdLine.classList.remove('hidden');
+                        } else {
+                            aiIdLine.classList.add('hidden');
+                        }
+                    }
                 } else {
                     aiBlock.classList.add('hidden');
                 }
@@ -1940,7 +2644,10 @@
                         const thumb = document.createElement('div');
                         thumb.className = "w-full h-12 rounded-lg bg-navy-dark overflow-hidden border border-gray-800 cursor-pointer relative hover:border-orange-brand transition-all";
                         thumb.title = "Ver imagen";
-                        thumb.innerHTML = `<img src="data:image/jpeg;base64,${imgBase64}" class="w-full h-full object-contain p-0.5 pointer-events-none">`;
+                        const thumbImg = document.createElement('img');
+                        thumbImg.src = `data:image/jpeg;base64,${imgBase64}`;
+                        thumbImg.className = "w-full h-full object-contain p-0.5 pointer-events-none";
+                        thumb.appendChild(thumbImg);
                         thumb.addEventListener('click', (e) => {
                             e.stopPropagation();
                             openImageViewer(imgBase64);
@@ -2011,6 +2718,181 @@
 
             actualizarHistorial(document.getElementById('search-orders').value);
         }
+
+        // ===================== CLIENTES QUE YA VISITARON EL TALLER =====================
+        // Mientras se captura el nombre o el teléfono, muestra a los clientes anteriores con su historial.
+        // Se agrupan por nombre, así si el cliente da otro número se le reconoce por su nombre (y viceversa).
+        const normTxt = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+        const soloDig = (t) => String(t ?? '').replace(/\D/g, '');
+        let sugerenciasCerradas = false;
+
+        function buscarClientesPrevios(nombreQ, telQ) {
+            const nombreNorm = normTxt(nombreQ);
+            const palabras = nombreNorm.split(' ').filter(Boolean);
+            const tq = soloDig(telQ);
+            const usaNombre = nombreNorm.length >= 2;
+            const usaTel = tq.length >= 3;
+            if (!usaNombre && !usaTel) return { grupos: [], tq, usaTel };
+
+            const claves = new Set();
+            ordenesReparacion.forEach(o => {
+                const n = normTxt(o.cliente);
+                const porNombre = usaNombre && palabras.every(w => n.includes(w));
+                const porTel = usaTel && soloDig(o.telefono).includes(tq);
+                if (porNombre || porTel) claves.add(n);
+            });
+
+            const grupos = Array.from(claves).map(clave => {
+                const ordenes = ordenesReparacion.filter(o => normTxt(o.cliente) === clave)
+                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                const telefonos = [];
+                ordenes.forEach(o => {
+                    const d = soloDig(o.telefono);
+                    if (d && !telefonos.some(t => soloDig(t) === d)) telefonos.push(o.telefono);
+                });
+                return { nombre: ordenes[0].cliente, ordenes, telefonos, ultima: ordenes[0].createdAt || 0 };
+            }).sort((a, b) => b.ultima - a.ultima).slice(0, 4);
+            return { grupos, tq, usaTel };
+        }
+
+        function renderSugerenciasCliente() {
+            const box = document.getElementById('client-suggestions');
+            if (!box) return;
+            const nombreInput = document.getElementById('client-name');
+            const telInput = document.getElementById('client-phone');
+            const { grupos, tq, usaTel } = sugerenciasCerradas ? { grupos: [], tq: '', usaTel: false } : buscarClientesPrevios(nombreInput.value, telInput.value);
+            box.innerHTML = "";
+            if (grupos.length === 0) { box.classList.add('hidden'); box.classList.remove('flex'); return; }
+            box.classList.remove('hidden'); box.classList.add('flex');
+
+            const cab = document.createElement('div');
+            cab.className = "flex justify-between items-center";
+            const tit = document.createElement('span');
+            tit.className = "text-[10px] uppercase font-extrabold tracking-wider text-orange-brand flex items-center gap-1.5";
+            tit.innerHTML = '<i class="fa-solid fa-user-clock"></i> Cliente que ya visitó el taller';
+            const cerrar = document.createElement('button');
+            cerrar.type = 'button'; cerrar.title = 'Ocultar'; cerrar.textContent = '×';
+            cerrar.className = "text-gray-400 hover:text-white text-lg leading-none px-1";
+            cerrar.addEventListener('click', () => { sugerenciasCerradas = true; renderSugerenciasCliente(); });
+            cab.appendChild(tit); cab.appendChild(cerrar);
+            box.appendChild(cab);
+
+            grupos.forEach(g => {
+                const card = document.createElement('div');
+                card.className = "bg-navy-dark/70 border border-gray-800 rounded-lg p-2.5 flex flex-col gap-2";
+
+                // Nombre + visitas
+                const fila1 = document.createElement('div');
+                fila1.className = "flex justify-between items-start gap-2";
+                const izq = document.createElement('div');
+                izq.className = "flex flex-col";
+                const nom = document.createElement('span');
+                nom.className = "text-xs font-extrabold text-white";
+                nom.textContent = g.nombre;
+                const vis = document.createElement('span');
+                vis.className = "text-[10px] text-gray-400";
+                vis.textContent = `${g.ordenes.length} ${g.ordenes.length === 1 ? 'visita' : 'visitas'} · última: ${g.ordenes[0].fecha || '-'}`;
+                izq.appendChild(nom); izq.appendChild(vis);
+                const usar = document.createElement('button');
+                usar.type = 'button';
+                usar.className = "text-[10px] font-bold bg-orange-brand hover:bg-orange-600 text-white px-2.5 py-1.5 rounded-lg shrink-0";
+                usar.textContent = "Usar estos datos";
+                usar.addEventListener('click', () => {
+                    nombreInput.value = g.nombre;
+                    telInput.value = g.telefonos[0] || "";
+                    sugerenciasCerradas = true;
+                    renderSugerenciasCliente();
+                    showNotification(`Datos de ${g.nombre} cargados`, "success");
+                });
+                fila1.appendChild(izq); fila1.appendChild(usar);
+                card.appendChild(fila1);
+
+                // Teléfonos que ha usado (tocar uno lo pone en el campo)
+                const filaTel = document.createElement('div');
+                filaTel.className = "flex flex-wrap items-center gap-1.5";
+                const lbl = document.createElement('span');
+                lbl.className = "text-[9px] uppercase tracking-wider text-gray-500 font-bold";
+                lbl.textContent = g.telefonos.length > 1 ? "Teléfonos:" : "Teléfono:";
+                filaTel.appendChild(lbl);
+                g.telefonos.forEach(t => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = "text-[10px] font-mono bg-navy-light hover:bg-gray-800 text-gray-200 border border-gray-700 hover:border-orange-brand px-2 py-0.5 rounded-lg";
+                    chip.textContent = t;
+                    chip.title = "Poner este teléfono";
+                    chip.addEventListener('click', () => {
+                        nombreInput.value = g.nombre;
+                        telInput.value = t;
+                        sugerenciasCerradas = true;
+                        renderSugerenciasCliente();
+                    });
+                    filaTel.appendChild(chip);
+                });
+                card.appendChild(filaTel);
+
+                // Aviso: el cliente dio un número que no tenía registrado
+                if (usaTel && tq.length >= 7 && !g.telefonos.some(t => soloDig(t).includes(tq))) {
+                    const aviso = document.createElement('p');
+                    aviso.className = "text-[10px] text-amber-400";
+                    aviso.textContent = "Ojo: este número es distinto a los que había dado antes.";
+                    card.appendChild(aviso);
+                }
+
+                // Historial de reparaciones
+                const hist = document.createElement('div');
+                hist.className = "flex flex-col gap-1";
+                const pintar = (todas) => {
+                    hist.innerHTML = "";
+                    const lista = todas ? g.ordenes : g.ordenes.slice(0, 3);
+                    lista.forEach(o => {
+                        const fila = document.createElement('div');
+                        fila.className = "flex justify-between items-center gap-2 bg-navy-light/60 hover:bg-navy-light px-2 py-1.5 rounded-lg cursor-pointer border border-gray-800/60";
+                        fila.title = "Ver esta orden";
+                        const t = document.createElement('span');
+                        t.className = "text-[10px] text-gray-300 min-w-0 truncate";
+                        const folio = document.createElement('b');
+                        folio.className = "text-orange-brand font-mono";
+                        folio.textContent = o.id;
+                        t.appendChild(folio);
+                        t.appendChild(document.createTextNode(` · ${o.modelo || ''}${o.falla ? ' · ' + o.falla : ''}`));
+                        const der = document.createElement('span');
+                        der.className = "flex items-center gap-1.5 shrink-0";
+                        const est = ESTADOS[estadoDe(o)];
+                        const badge = document.createElement('span');
+                        badge.className = `text-[9px] font-bold border px-1.5 py-0.5 rounded ${est.badge}`;
+                        badge.textContent = est.label;
+                        const fch = document.createElement('span');
+                        fch.className = "text-[9px] text-gray-500";
+                        fch.textContent = o.fecha || '';
+                        der.appendChild(badge); der.appendChild(fch);
+                        fila.appendChild(t); fila.appendChild(der);
+                        fila.addEventListener('click', () => {
+                            seleccionarOrden(o.id);
+                            if (window.innerWidth < 1024) document.getElementById('tab-ordenes').click();
+                        });
+                        hist.appendChild(fila);
+                    });
+                    if (!todas && g.ordenes.length > 3) {
+                        const mas = document.createElement('button');
+                        mas.type = 'button';
+                        mas.className = "text-[10px] text-orange-brand hover:underline text-left";
+                        mas.textContent = `Ver las ${g.ordenes.length} reparaciones`;
+                        mas.addEventListener('click', () => pintar(true));
+                        hist.appendChild(mas);
+                    }
+                };
+                pintar(false);
+                card.appendChild(hist);
+                box.appendChild(card);
+            });
+        }
+
+        ['client-name', 'client-phone'].forEach(id => {
+            const el = document.getElementById(id);
+            el.setAttribute('autocomplete', 'off');
+            el.addEventListener('input', () => { sugerenciasCerradas = false; renderSugerenciasCliente(); });
+        });
+        document.getElementById('form-ingreso').addEventListener('reset', () => { sugerenciasCerradas = false; setTimeout(renderSugerenciasCliente, 0); });
 
         document.getElementById('search-orders').addEventListener('input', (e) => actualizarHistorial(e.target.value));
 
